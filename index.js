@@ -6,13 +6,13 @@ var INFO_TEXT_LIMIT;
 
 var tools_info = {
     none: "Treceți cu cursorul peste un instrument pentru a-i vedea descrierea",
-    SELECTION: "Selectează o porțiune din imagine sau toată imaginea.",
-    CROP: "Decupează imaginea conform unei selecții făcute cu Select.",
-    EFFECTS: "Aplică un filtru pe porțiunea selectată.",
-    RESIZE: "Scalează imaginea după o lungime și lățime date.",
-    TEXT: "Adaugă un text pe imagine.",
-    COLOR_HISTOGRAM: "Comută histograma de culori pentru o selecție.",
-    DELETE: "Elimină porțiunea selectată din imagine."
+    SELECTION: "<b>Selectează:</b> Selectează o porțiune din imagine sau toată imaginea.",
+    CROP: "<b>Decupează:</b> Decupează imaginea conform unei selecții făcute cu Select.",
+    EFFECTS: "<b>Efecte:</b> Aplică un filtru pe porțiunea selectată.",
+    RESIZE: "<b>Redimensionează:</b> Scalează imaginea după o lungime și lățime date.",
+    TEXT: "<b>Text:</b> Adaugă un text pe imagine.",
+    COLOR_HISTOGRAM: "<b>Histogramă:</b> Comută histograma de culori pentru o selecție.",
+    CUT: "<b>Decupează:</b> Elimină porțiunea selectată din imagine."
 }
 
 window.onload = () => {
@@ -111,5 +111,5 @@ function setInfoText(text) {
     let textArea = document.getElementById("info-tooltip-text");
 
     fullInfoText = text.slice();
-    textArea.innerHTML = text.slice(0, INFO_TEXT_LIMIT) + (text.length > INFO_TEXT_LIMIT ? "[...]" : "");
+    textArea.innerHTML = text.slice(0, INFO_TEXT_LIMIT) + (text.length > INFO_TEXT_LIMIT ? "<b>[...]</b>" : "");
 }

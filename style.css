@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway&display=swap');
 
 :root {
     /* Culori pagina */
@@ -30,7 +31,7 @@ body {
 }
 
 button {
-    font-family: 'Ubuntu Mono', monospace;
+    cursor: pointer;
 }
 
 #container {
@@ -40,8 +41,8 @@ button {
     max-height: 720px;
 
     display: grid;
-    grid-template-rows: 50px minmax(auto, 720px);
-    grid-template-columns: 50px minmax(auto, 1280px);
+    grid-template-rows: 55px minmax(auto, 720px);
+    grid-template-columns: 55px minmax(auto, 1280px);
     grid-template-areas: "l b"
                          "t w";
     gap: 5px;
@@ -50,7 +51,6 @@ button {
 
 /* == Logo ================== */
 #logo {
-
     display: flex;
     justify-content: center;
     align-items: center;
@@ -59,6 +59,9 @@ button {
 }
 
 #logo-img {
+    position: relative;
+    top: 5px;
+
     width: 90%;
     height: 90%;
     /* Portocaliu */
@@ -77,7 +80,6 @@ button {
 #toolbar {
     display: flex;
     align-items: center;
-    gap: 5px;
     padding-left: 0.5em;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
@@ -86,9 +88,18 @@ button {
 }
 
 #toolbar > button {
+    font-family: "Raleway";
     color: var(--gray4);
     background-color: transparent;
     border: none;
+}
+
+#save-button {
+    border-left: 1px solid var(--gray1) !important;
+}
+
+#toolbar > button:hover {
+    color: white;
 }
 
 #info-tooltip {
@@ -173,11 +184,19 @@ button {
 }
 
 #toolpicker > img {
-    width: 35px;
-    height: 35px;
-    border-radius: 5px;
+    width: 30px;
+    height: 30px;
+    padding: 5px;
 
     background-color: var(--gray1);
+    border: 1px solid var(--gray2);
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#toolpicker > img:hover {
+    background-color: var(--gray3);
+    border: 1px solid var(--gray4);
 }
 
 /* == Workspace area ============== */
