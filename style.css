@@ -1,0 +1,210 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap');
+
+:root {
+    /* Culori pagina */
+    --gray1: #2D3142;
+    --gray2: #525562;
+    --gray3: #767981;
+    --gray4: #BFC0C0;
+    --gray5: #DFE0E0;
+    --orange: #EF8354;
+    --mild-black: #212430;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+/* https://coolors.co/212430-2d3142-525562-767981-bfc0c0-dfe0e0-ffffff-ef8354 */
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background-color: var(--gray1);
+}
+
+button {
+    font-family: 'Ubuntu Mono', monospace;
+}
+
+#container {
+    width: 90%;
+    max-width: 1280px;
+    height: 90%;
+    max-height: 720px;
+
+    display: grid;
+    grid-template-rows: 50px minmax(auto, 720px);
+    grid-template-columns: 50px minmax(auto, 1280px);
+    grid-template-areas: "l b"
+                         "t w";
+    gap: 5px;
+    row-gap: 10px;
+}
+
+/* == Logo ================== */
+#logo {
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    grid-area: "l"
+}
+
+#logo-img {
+    width: 90%;
+    height: 90%;
+    /* Portocaliu */
+    /* Generat cu https://codepen.io/sosuke/pen/Pjoqqp */
+    filter: invert(52%) sepia(91%) saturate(344%) hue-rotate(332deg) brightness(97%) contrast(93%);
+}
+
+/* == Bars ====================== */
+#bars {
+    display: grid;
+    grid-template-rows: 50% 50%;
+
+    grid-area: "b"
+}
+
+#toolbar {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding-left: 0.5em;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+
+    background-color: var(--gray2);
+}
+
+#toolbar > button {
+    color: var(--gray4);
+    background-color: transparent;
+    border: none;
+}
+
+#info-tooltip {
+    display: grid;
+    grid-template-columns: 30px auto;
+    grid-template-rows: 30px;
+}
+
+#info-tooltip-icon-div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-color: var(--gray3);
+}
+
+#info-tooltip-icon {
+    width: 60%;
+    height: 70%;
+    filter: invert(88%) sepia(0%) saturate(0%) hue-rotate(234deg) brightness(103%) contrast(92%);
+}
+
+#info-tooltip-textbox {
+    padding-left: 10px;
+    
+    display: flex;
+    align-items: center;
+
+    background-color: var(--gray4);
+    color: var(--mild-black);
+    cursor: help;
+}
+
+#info-tooltip-text {
+    height: 1em;
+}
+
+/* Arata toata informatia pe hover */
+#info-tooltip-hover {
+    display: none;
+
+    min-height: 30px;
+    max-width: 50%;
+    padding: 8px;
+    position: absolute;
+
+    background-color: var(--gray2);
+    border: 1px solid var(--gray1);
+    border-radius: 5px;
+    color: var(--gray5);
+
+    font-family: Consolas;
+    font-size: 0.8em;
+}
+
+.hover-in {
+    animation: info-tooltip-in 0.5s linear 1s;
+    animation-fill-mode: backwards;
+}
+
+.hover-out {
+    animation: info-tooltip-out 0.5s linear 1s;
+    animation-fill-mode: forwards;
+}
+
+/* == Toolpicker ================== */
+#toolpicker {
+    width: auto;
+    height: 100%;
+    padding-top: 10px;
+    border-bottom-left-radius: 10px;
+    border-top-left-radius: 10px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+
+    background-color: var(--gray2);
+
+    grid-area: "t"
+}
+
+#toolpicker > img {
+    width: 35px;
+    height: 35px;
+    border-radius: 5px;
+
+    background-color: var(--gray1);
+}
+
+/* == Workspace area ============== */
+/* (canvas area) */
+#workspace-area {
+    background-color: var(--gray5);
+    border-bottom-right-radius: 10px;
+
+    grid-area: "w"
+}
+
+@keyframes info-tooltip-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes info-tooltip-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}

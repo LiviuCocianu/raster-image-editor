@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <link rel="stylesheet" href="style.css">
+    <script src="index.js"></script>
+</head>
+
+<body>
+    <div id="container">
+        <div id="logo">
+            <img id="logo-img" src="media/logo.png" alt="logo aplicatie">
+        </div>
+
+        <div id="bars">
+            <div id="toolbar">
+                <button id="load-button">Încarcă</button>
+                <button id="save-button">Salvează</button>
+            </div>
+
+            <div id="info-tooltip">
+                <div id="info-tooltip-icon-div">
+                    <img id="info-tooltip-icon" src="media/info_icon.png" alt="info icon">
+                </div>
+                <div id="info-tooltip-textbox">
+                    <div id="info-tooltip-hover" class="hover-in"></div>
+                    <span id="info-tooltip-text"></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="toolpicker">
+            <img class="tool" id="select-button" src="" alt="SELECTION">
+            <img class="tool" id="crop-button" src="" alt="CROP">
+            <img class="tool" id="effects-button" src="" alt="EFFECTS">
+            <img class="tool" id="resize-button" src="" alt="RESIZE">
+            <img class="tool" id="text-button" src="" alt="TEXT">
+            <img class="tool" id="graph-button" src="" alt="COLOR_HISTOGRAM">
+            <img class="tool" id="del-sel-button" src="" alt="DELETE">
+        </div>
+
+        <div id="workspace-area">
+            <canvas id="workspace-canvas">Acest browser nu suportă canvas</canvas>
+        </div>
+    </div>
+</body>
+
+</html>
