@@ -12,6 +12,16 @@
     --mild-black: #212430;
 }
 
+#darkness {
+    visibility: hidden;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    opacity: 0.5;
+    z-index: 5;
+}
+
 html, body {
     width: 100%;
     height: 100%;
@@ -49,6 +59,7 @@ button {
     row-gap: 10px;
 }
 
+
 /* == Logo ================== */
 #logo {
     display: flex;
@@ -68,6 +79,7 @@ button {
     /* Generat cu https://codepen.io/sosuke/pen/Pjoqqp */
     filter: invert(52%) sepia(91%) saturate(344%) hue-rotate(332deg) brightness(97%) contrast(93%);
 }
+
 
 /* == Bars ====================== */
 #bars {
@@ -137,6 +149,7 @@ button {
     height: 1em;
 }
 
+
 /* Arata toata informatia pe hover */
 #info-tooltip-hover {
     display: none;
@@ -164,6 +177,7 @@ button {
     animation: info-tooltip-out 0.5s linear 1s;
     animation-fill-mode: forwards;
 }
+
 
 /* == Toolpicker ================== */
 #toolpicker {
@@ -199,15 +213,111 @@ button {
     border: 1px solid var(--gray4);
 }
 
+
 /* == Workspace area ============== */
 /* (canvas area) */
 #workspace-area {
     background-color: var(--gray5);
     border-bottom-right-radius: 10px;
 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
     grid-area: "w"
 }
 
+#workspace-canvas {
+    box-shadow: 3px 3px 20px 1px var(--gray3);
+}
+
+
+/* Formular de încărcare pentru imagini */
+#load-window {
+    visibility: hidden;
+    position: absolute;
+    width: 350px;
+    height: 150px;
+    top: calc(50% - 75px);
+    left: calc(50% - 175px);
+    z-index: 10;
+
+    display: grid;
+    grid-template-rows: 1fr 5fr;
+
+    background-color: var(--gray4);
+    border-radius: 10px;
+    box-shadow: 3px 3px 20px 1px var(--gray3);
+    font-family: 'Raleway';
+}
+
+#lw-handle {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    background-color: var(--gray2);
+    color: var(--gray4);
+    font-size: 0.8em;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+#lw-title {
+    margin-left: 15px;
+}
+
+#lw-close-button {
+    margin-left: auto;
+    background-color: transparent;
+    border: none;
+    color: var(--gray5);
+}
+
+#lw-content {
+    padding: 10px;
+
+    display: flex;
+    flex-direction: column;
+
+    color: var(--mild-black);
+}
+
+#lw-info {
+    font-size: 0.8em;
+}
+
+#lw-load-component {
+    margin-top: auto;
+}
+
+#lw-load-input {
+    font-family: 'Raleway';
+    width: 100%;
+}
+
+#lw-submit-area {
+    margin-left: auto;
+}
+
+#lw-submit-button, #lw-load-input::file-selector-button {
+    background-color: var(--gray2);
+    color: var(--gray4);
+    border: none;
+    border-radius: 5px;
+    padding: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+#lw-submit-button:hover, #lw-load-input::file-selector-button:hover {
+    color: var(--gray5);
+    cursor: pointer;
+}
+
+
+/* Animații */
 @keyframes info-tooltip-in {
     from {
         opacity: 0;

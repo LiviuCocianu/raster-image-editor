@@ -1,6 +1,11 @@
 var canvas;
 var context;
 
+var darkness;
+var loadWindow;
+var loadOption, saveOption;
+
+var currentImage;
 var fullInfoText;
 var INFO_TEXT_LIMIT;
 
@@ -19,6 +24,15 @@ window.onload = () => {
     canvas = document.getElementById("workspace-canvas");
     context = canvas.getContext("2d", {willReadFrequently: true});
 
+    currentImage = new Image(0, 0);
+
+    darkness = document.getElementById("darkness");
+    loadWindow = document.getElementById("load-window");
+    loadOption = document.getElementById("load-button");
+    saveOption = document.getElementById("save-button");
+
+    loadOption.focus();
+
     ajustareDimensiuneAplicatie();
     initializareEvenimente();
 
@@ -29,7 +43,38 @@ window.onload = () => {
 };
 
 function initializareEvenimente() {
+    let loadClose = document.getElementById("lw-close-button");
+    let loadInput = document.getElementById("lw-load-input");
+    let loadSubmit = document.getElementById("lw-submit-button");
     let infoText = document.getElementById("info-tooltip-textbox");
+
+    loadInput.value = "";
+
+    loadOption.addEventListener("click", () => {
+        openLoadWindow();
+    });
+
+    loadClose.addEventListener("click", () => {
+        closeLoadWindow();
+    });
+
+    loadInput.addEventListener("change", e => {
+        const reader = new FileReader();
+
+        reader.addEventListener("load", () => {
+            loadSubmit.disabled = false;
+            loadSubmit.style.cursor = "pointer";
+            loadSubmit.focus();
+            currentImage.src = reader.result;
+        });
+
+        reader.readAsDataURL(e.target.files[0]);
+    });
+
+    loadSubmit.addEventListener("click", () => {
+        if(currentImage.naturalWidth > 0) 
+            displayOnCanvas();
+    });
 
     infoText.addEventListener("mouseenter", (e) => {
         let infoHover = document.getElementById("info-tooltip-hover");
@@ -79,6 +124,40 @@ function info(text) {
     infoText.style.color = "var(--mild-black)";
 }
 
+function openLoadWindow() {
+    let loadSubmit = document.getElementById("lw-submit-button");
+    let loadInput = document.getElementById("lw-load-input");
+
+    loadWindow.style.visibility = "visible";
+    loadOption.disabled = true;
+    loadOption.style.cursor = "not-allowed";
+    loadSubmit.style.cursor = "not-allowed";
+    loadInput.focus();
+
+    darkness.style.visibility = "visible";
+}
+
+function closeLoadWindow() {
+    let loadInput = document.getElementById("lw-load-input");
+
+    loadWindow.style.visibility = "hidden";
+    loadOption.disabled = false;
+    loadOption.style.cursor = "pointer";
+    loadInput.value = "";
+
+    darkness.style.visibility = "hidden";
+}
+
+function displayOnCanvas() {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    canvas.width = canvas.style.width = currentImage.naturalWidth;
+    canvas.height = canvas.style.height = currentImage.naturalHeight;
+
+    context.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+    closeLoadWindow();
+}
+
 /*
     Ajustarea marimilor aplicației în mod programatic.
     Canvas-ul trebuie să aibă o marime fixă, prin urmare
@@ -95,10 +174,8 @@ function ajustareDimensiuneAplicatie() {
 
     barsDiv.style.width = workspaceRect.width + "px";
 
-    canvas.width = workspaceRect.width;
-    canvas.height = workspaceRect.height;
-    canvas.style.width = workspaceRect.width + "px";
-    canvas.style.height = workspaceRect.height + "px";
+    canvas.width = 0;
+    canvas.height = 0;
 
     var padding = parseInt(window.getComputedStyle(toolpickerDiv).paddingTop.replace(/[^\d+]/ig, ""));
     toolpickerDiv.style.height = (workspaceRect.height - padding) + "px";

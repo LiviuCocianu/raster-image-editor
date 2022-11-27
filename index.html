@@ -8,6 +8,8 @@
 </head>
 
 <body>
+    <div id="darkness"></div>
+    
     <div id="container">
         <div id="logo">
             <img id="logo-img" src="media/logo.png" alt="logo aplicatie">
@@ -42,6 +44,28 @@
 
         <div id="workspace-area">
             <canvas id="workspace-canvas">Acest browser nu suportă canvas</canvas>
+        </div>
+
+        <!-- Formular de încărcare pentru imagini -->
+        <div id="load-window">
+            <div id="lw-handle">
+                <span id="lw-title">Încarcă o imagine</span>
+                <button id="lw-close-button">✖</button>
+            </div>
+            <div id="lw-content">
+                <div id="lw-info">
+                    <span id="lw-info-text">
+                        Încarcă o imagine<br/>
+                        Tipuri acceptate: PNG, JPEG
+                    </span>
+                </div>
+                <div id="lw-load-component">
+                    <input type="file" name="load-image" id="lw-load-input" accept="image/png, image/jpeg">
+                </div>
+                <div id="lw-submit-area">
+                    <button id="lw-submit-button" disabled>Încarcă</button>
+                </div>
+            </div>
         </div>
     </div>
 </body>
