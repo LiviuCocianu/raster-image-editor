@@ -43,7 +43,24 @@
         </div>
 
         <div id="workspace-area">
-            <canvas id="workspace-canvas">Acest browser nu suportă canvas</canvas>
+            <div id="ws-canvas-container">
+                <div id="selection">
+                    <!-- 
+                        t -> top
+                        r -> bottom
+                        l -> left
+                        r -> right
+                    -->
+                    <div class="sel-handle" id="sel-tl"></div>
+                    <div class="sel-handle" id="sel-tr"></div>
+                    <div class="sel-handle" id="sel-bl"></div>
+                    <div class="sel-handle" id="sel-br"></div>
+                </div>
+
+                <canvas id="workspace-canvas" width="0" height="0">
+                    Acest browser nu suportă canvas
+                </canvas>
+            </div>
         </div>
 
         <!-- Formular de încărcare pentru imagini -->
