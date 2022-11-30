@@ -33,13 +33,13 @@
         </div>
 
         <div id="toolpicker">
-            <img class="tool" id="select-button" src="media/select-icon.png" alt="SELECTION">
-            <img class="tool" id="crop-button" src="media/crop-icon.png" alt="CROP">
-            <img class="tool" id="effects-button" src="media/effects-icon.png" alt="EFFECTS">
-            <img class="tool" id="resize-button" src="media/resize-icon.png" alt="RESIZE">
-            <img class="tool" id="text-button" src="media/text-icon.png" alt="TEXT">
-            <img class="tool" id="graph-button" src="media/histogram-icon.png" alt="COLOR_HISTOGRAM">
-            <img class="tool" id="cut-button" src="media/cut-icon.png" alt="CUT">
+            <img class="tool" id="select-button" src="media/select-icon.png" alt="SELECTION" onclick="toolbar.selectTool(toolbar.ToolEnum.SELECTION)">
+            <img class="tool" id="crop-button" src="media/crop-icon.png" alt="CROP" onclick="toolbar.selectTool(toolbar.ToolEnum.CROP)">
+            <img class="tool" id="effects-button" src="media/effects-icon.png" alt="EFFECTS" onclick="toolbar.selectTool(toolbar.ToolEnum.EFFECTS)">
+            <img class="tool" id="resize-button" src="media/resize-icon.png" alt="RESIZE" onclick="toolbar.selectTool(toolbar.ToolEnum.RESIZE)">
+            <img class="tool" id="text-button" src="media/text-icon.png" alt="TEXT" onclick="toolbar.selectTool(toolbar.ToolEnum.TEXT)">
+            <img class="tool" id="graph-button" src="media/histogram-icon.png" alt="COLOR_HISTOGRAM" onclick="toolbar.selectTool(toolbar.ToolEnum.COLOR_HISTOGRAM)">
+            <img class="tool" id="cut-button" src="media/cut-icon.png" alt="CUT" onclick="toolbar.selectTool(toolbar.ToolEnum.CUT)">
         </div>
 
         <div id="workspace-area">
@@ -51,10 +51,10 @@
                         l -> left
                         r -> right
                     -->
-                    <div class="sel-handle" id="sel-tl"></div>
-                    <div class="sel-handle" id="sel-tr"></div>
-                    <div class="sel-handle" id="sel-bl"></div>
-                    <div class="sel-handle" id="sel-br"></div>
+                    <div class="sel-node" id="sel-tl"></div>
+                    <div class="sel-node" id="sel-tr"></div>
+                    <div class="sel-node" id="sel-bl"></div>
+                    <div class="sel-node" id="sel-br"></div>
                 </div>
 
                 <canvas id="workspace-canvas" width="0" height="0">

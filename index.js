@@ -1,275 +1,51 @@
-var canvas;
-var context;
-
-var darkness;
-var selection;
-var loadWindow;
-var loadOption, saveOption;
+// Obiecte de lucru
+var infoTextbox;
+var toolbar;
 var workspace;
+var selection;
 
-var currentImage;
-var fullInfoText;
-var workspaceScale = 1;
-var selMouseDown = {
-    point: {
-        x: 10,
-        y: 10
-    },
-    topLeft: false,
-    topRight: false,
-    bottomLeft: false,
-    bottomRight: false
-};
+// Toolbar
+var loadOption, saveOption;
 
-var INFO_TEXT_LIMIT;
-
-var tools_info = {
-    none: "Treceți cu cursorul peste un instrument pentru a-i vedea descrierea",
-    SELECTION: "<b>Selectează:</b> Selectează o porțiune din imagine sau toată imaginea.",
-    CROP: "<b>Decupează:</b> Decupează imaginea conform unei selecții făcute cu Select.",
-    EFFECTS: "<b>Efecte:</b> Aplică un filtru pe porțiunea selectată.",
-    RESIZE: "<b>Redimensionează:</b> Scalează imaginea după o lungime și lățime date.",
-    TEXT: "<b>Text:</b> Adaugă un text pe imagine.",
-    COLOR_HISTOGRAM: "<b>Histogramă:</b> Comută histograma de culori pentru o selecție.",
-    CUT: "<b>Decupează:</b> Elimină porțiunea selectată din imagine."
-}
+// Fereastra de load
+var darkness;
+var loadWindow;
 
 window.onload = () => {
-    canvas = document.getElementById("workspace-canvas");
-    context = canvas.getContext("2d", {willReadFrequently: true});
-
-    currentImage = new Image(0, 0);
-
-    darkness = document.getElementById("darkness");
-    selection = Selection.create(0, 0, 50, 50);
-    loadWindow = document.getElementById("load-window");
+    // Toolbar
     loadOption = document.getElementById("load-button");
     saveOption = document.getElementById("save-button");
-    workspace = document.getElementById("workspace-area");
-
     loadOption.focus();
-    selection.sel.style.display = "none";
 
+    // Obiecte de lucru
+    toolbar = new Toolbar();
+    infoTextbox = new InfoTextbox();
+    workspace = new Workspace();
+    selection = Selection.create(0, 0, 1, 1);
+
+    // Fereastra de load
+    darkness = document.getElementById("darkness");
+    loadWindow = new LoadWindow();
+    
     ajustareDimensiuneAplicatie();
     initializareEvenimente();
-    initEvenimenteSel();
-
-    let textBox = document.getElementById("info-tooltip-textbox");
-    INFO_TEXT_LIMIT = Math.ceil(textBox.getBoundingClientRect().width * 0.112);
-
-    infoDefault();
 };
 
 function initializareEvenimente() {
-    let loadClose = document.getElementById("lw-close-button");
-    let loadInput = document.getElementById("lw-load-input");
-    let loadSubmit = document.getElementById("lw-submit-button");
-    let infoText = document.getElementById("info-tooltip-textbox");
-
-    loadInput.value = "";
-
-    loadOption.addEventListener("click", () => {
-        openLoadWindow();
-    });
-
     saveOption.addEventListener("click", e => {
-        if(Image.prototype.format) {
+        if(workspace.loadedImageExists) {
             e.preventDefault();
 
             const a = document.createElement("a");
 
             a.style.display = "none";
-            a.href = canvas.toDataURL(Image.prototype.format, 1.0);
-            a.download = currentImage.name;
+            a.href = workspace.getCanvasElement.toDataURL(Image.prototype.format, 1.0);
+            a.download = workspace.getLoadedImage.name;
 
             a.click();
             a.remove();
         }
     });
-
-    loadClose.addEventListener("click", () => {
-        closeLoadWindow();
-    });
-
-    loadInput.addEventListener("change", e => {
-        const reader = new FileReader();
-
-        reader.addEventListener("load", () => {
-            loadSubmit.disabled = false;
-            loadSubmit.style.cursor = "pointer";
-            loadSubmit.focus();
-            currentImage.src = reader.result;
-
-            // Păstrăm numele original al imaginii
-            currentImage.name = e.target.files[0].name.split(".")[0];
-
-            // Stocăm tipul imaginii direct în obiectul Image la nivel global, creând o nouă proprietate "format"
-            Image.prototype.format = reader.result.split(";")[0].slice(5);
-        });
-
-        reader.readAsDataURL(e.target.files[0]);
-    });
-
-    loadSubmit.addEventListener("click", () => {
-        if(currentImage.naturalWidth > 0) 
-            displayOnCanvas();
-    });
-
-    infoText.addEventListener("mouseenter", (e) => {
-        let infoHover = document.getElementById("info-tooltip-hover");
-
-        if (infoHover.style.display !== "block" && fullInfoText.length > INFO_TEXT_LIMIT) { 
-            infoHover.style.display = "block";
-
-            infoHover.style.left = e.clientX + "px";
-            infoHover.style.top = e.clientY + "px";
-
-            infoHover.classList.remove("hover-out");
-            infoHover.classList.add("hover-in");
-            infoHover.innerHTML = fullInfoText;
-        }
-    });
-
-    infoText.addEventListener("mouseleave", () => {
-        let infoHover = document.getElementById("info-tooltip-hover");
-
-        if (infoHover.style.display !== "none") {
-            infoHover.classList.remove("hover-in");
-            infoHover.classList.add("hover-out");
-    
-            setTimeout(() => {
-                if (infoHover.style.display !== "none")
-                    infoHover.style.display = "none";
-            }, 1500);
-        }
-    });
-
-    window.addEventListener("keyup", e => {
-        if(e.ctrlKey) {
-            const incr = 0.1;
-
-            // Keybinds pentru zoom pe workspace
-            if(e.key == ".") {
-                workspaceScale = Math.max(0, Math.min(workspaceScale + incr, 3));
-                canvas.style.transform = `scale(${workspaceScale})`;
-            } else if(e.key == ",") {
-                workspaceScale = Math.max(0, Math.min(workspaceScale - incr, 3));
-                canvas.style.transform = `scale(${workspaceScale})`;
-            }
-        }
-    });
-
-    Array.from(document.getElementsByClassName("tool")).forEach(el => {
-        el.addEventListener("mouseenter", () => {
-            info(tools_info[el.alt])
-        });
-    });
-}
-
-function initEvenimenteSel() {
-    const tl = document.getElementById("sel-tl");
-    const tr = document.getElementById("sel-tr");
-    const bl = document.getElementById("sel-bl");
-    const br = document.getElementById("sel-br");
-    const canvCont = document.getElementById("ws-canvas-container");
-
-    tl.addEventListener("mousedown", () => selMouseDown.topLeft = true);
-    tr.addEventListener("mousedown", () => selMouseDown.topRight = true);
-    bl.addEventListener("mousedown", () => selMouseDown.bottomLeft = true);
-    br.addEventListener("mousedown", () => selMouseDown.bottomRight = true);
-
-    // Array.from(document.getElementsByClassName("sel-handle")).forEach(el => {
-    //     el.addEventListener("mousedown", e => {
-    //         selMouseDown.point = {
-    //             x: Math.round(Math.max(0, e.target.clientX)),
-    //             y: Math.round(Math.max(0, e.target.clientY))
-    //         };
-    //     });
-    // });
-
-    canvCont.addEventListener("mousedown", e => {
-        if(e.target.classList.contains("sel-handle")) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const x = Math.round(Math.max(0, e.clientX - rect.left));
-        const y = Math.round(Math.max(0, e.clientY - rect.top));
-
-        selMouseDown.point = {x, y};
-        selMouseDown.bottomRight = true;
-    });
-
-    canvCont.addEventListener("mouseup", e => {
-        selMouseDown.topLeft = false;
-        selMouseDown.topRight = false;
-        selMouseDown.bottomLeft = false;
-        selMouseDown.bottomRight = false;
-    });
-
-    canvCont.addEventListener("mousemove", e => {
-        const rect = canvas.getBoundingClientRect();
-        const x = selMouseDown.point.x;
-        const y = selMouseDown.point.y;
-        const w = Math.round(Math.max(0, (e.clientX - rect.left) - x));
-        const h = Math.round(Math.max(0, (e.clientY - rect.top) - y));
-
-        if(selMouseDown.topLeft) 
-            selection.makeSelectionAt(x, y, w, h, 1);
-
-        if(selMouseDown.topRight) 
-            selection.makeSelectionAt(x, y, w, h, 2);
-
-        if(selMouseDown.bottomLeft) 
-            selection.makeSelectionAt(x, y, w, h, 3);
-
-        if(selMouseDown.bottomRight)
-            selection.makeSelectionAt(x, y, w, h, 4);
-    });
-}
-
-function infoDefault() {
-    let infoText = document.getElementById("info-tooltip-text");
-    setInfoText(tools_info.none);
-    infoText.style.color = "gray";
-}
-
-function info(text) {
-    let infoText = document.getElementById("info-tooltip-text");
-    setInfoText(text);
-    infoText.style.color = "var(--mild-black)";
-}
-
-function openLoadWindow() {
-    let loadSubmit = document.getElementById("lw-submit-button");
-    let loadInput = document.getElementById("lw-load-input");
-
-    loadWindow.style.visibility = "visible";
-    loadOption.disabled = true;
-    loadOption.style.cursor = "not-allowed";
-    loadSubmit.style.cursor = "not-allowed";
-    loadInput.focus();
-
-    darkness.style.visibility = "visible";
-}
-
-function closeLoadWindow() {
-    let loadInput = document.getElementById("lw-load-input");
-
-    loadWindow.style.visibility = "hidden";
-    loadOption.disabled = false;
-    loadOption.style.cursor = "pointer";
-    loadInput.value = "";
-
-    darkness.style.visibility = "hidden";
-}
-
-function displayOnCanvas() {
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    canvas.width = canvas.style.width = currentImage.naturalWidth;
-    canvas.height = canvas.style.height = currentImage.naturalHeight;
-
-    context.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
-    closeLoadWindow();
 }
 
 /*
@@ -280,57 +56,320 @@ function displayOnCanvas() {
     mărimii inițiale a ferestrei.
 */
 function ajustareDimensiuneAplicatie() {
-    let workspaceDiv = document.getElementById("workspace-area");
-    let barsDiv = document.getElementById("bars");
-    let toolpickerDiv = document.getElementById("toolpicker");
+    const workspaceDiv = document.getElementById("workspace-area");
+    const barsDiv = document.getElementById("bars");
+    const toolpickerDiv = document.getElementById("toolpicker");
+    const canvCont = workspace.getContainingCanvasElement;
 
-    let workspaceRect = workspaceDiv.getBoundingClientRect();
+    canvCont.style.width = `${canvCont.getBoundingClientRect().width}px`;
+    canvCont.style.height = `${canvCont.getBoundingClientRect().height}px`;
 
+    const workspaceRect = workspaceDiv.getBoundingClientRect();
     barsDiv.style.width = workspaceRect.width + "px";
 
-    var padding = parseInt(window.getComputedStyle(toolpickerDiv).paddingTop.replace(/[^\d+]/ig, ""));
+    const padding = parseInt(window.getComputedStyle(toolpickerDiv).paddingTop.replace(/[^\d+]/ig, ""));
     toolpickerDiv.style.height = (workspaceRect.height - padding) + "px";
 
     workspaceDiv.style.width = workspaceRect.width + "px";
     workspaceDiv.style.height = workspaceRect.height + "px";
 }
 
-function setInfoText(text) {
-    let textArea = document.getElementById("info-tooltip-text");
+class InfoTextbox {
+    constructor() {
+        this.infoTextbox = document.getElementById("info-tooltip-textbox");
+        this.infoOwnText = document.getElementById("info-tooltip-text");
+        this.infoTextHover = document.getElementById("info-tooltip-hover");
 
-    fullInfoText = text.slice();
-    textArea.innerHTML = text.slice(0, INFO_TEXT_LIMIT) + (text.length > INFO_TEXT_LIMIT ? "<b>[...]</b>" : "");
+        this.fullInfoText;
+        this.infoTextLimit = Math.ceil(this.infoTextbox.getBoundingClientRect().width * 0.112);
+
+        this.infoDefault();
+
+        this.events();
+    }
+
+    get getInfoTextboxElement() {
+        return this.infoTextbox;
+    }
+
+    get getInfoTextLimit() {
+        return this.infoTextLimit;
+    }
+
+    setInfoText(text) {
+        this.fullInfoText = text.slice();
+        this.infoOwnText.innerHTML = text.slice(0, this.infoTextLimit) + (text.length > this.infoTextLimit ? "<b>[...]</b>" : "");
+    }
+
+    infoDefault() {
+        this.setInfoText(toolbar.getToolInfo(toolbar.ToolEnum.NONE));
+        this.infoOwnText.style.color = "gray";
+    }
+
+    info(text) {
+        this.setInfoText(text);
+        this.infoOwnText.style.color = "var(--mild-black)";
+    }
+
+    events() {
+        this.infoTextbox.addEventListener("mouseenter", e => {
+            if (this.infoTextHover.style.display !== "block" && this.fullInfoText.length > this.infoTextLimit) {
+                this.infoTextHover.style.display = "block";
+
+                this.infoTextHover.style.left = e.clientX + "px";
+                this.infoTextHover.style.top = e.clientY + "px";
+
+                this.infoTextHover.classList.remove("hover-out");
+                this.infoTextHover.classList.add("hover-in");
+                this.infoTextHover.innerHTML = this.fullInfoText;
+            }
+        });
+
+        this.infoTextbox.addEventListener("mouseleave", () => {
+            if (this.infoTextHover.style.display !== "none") {
+                this.infoTextHover.classList.remove("hover-in");
+                this.infoTextHover.classList.add("hover-out");
+
+                setTimeout(() => {
+                    if (this.infoTextHover.style.display !== "none")
+                        this.infoTextHover.style.display = "none";
+                }, 1500);
+            }
+        });
+
+        Array.from(document.getElementsByClassName("tool")).forEach(el => {
+            el.addEventListener("mouseenter", () => {
+                this.info(toolbar.getToolInfo(toolbar.ToolEnum[el.alt]))
+            });
+        });
+    }
+}
+
+class Toolbar {
+    constructor() {
+        this.toolEnum = {
+            NONE: -1,
+            SELECTION: 0,
+            CROP: 1,
+            EFFECTS: 2,
+            RESIZE: 3,
+            TEXT: 4,
+            COLOR_HISTOGRAM: 5,
+            CUT: 6
+        }
+
+        this.toolsInfo = {
+            NONE: "Treceți cu cursorul peste un instrument pentru a-i vedea descrierea",
+            SELECTION: "<b>Selectează:</b> Selectează o porțiune din imagine sau toată imaginea.",
+            CROP: "<b>Decupează:</b> Decupează imaginea conform unei selecții făcute cu Select.",
+            EFFECTS: "<b>Efecte:</b> Aplică un filtru pe porțiunea selectată.",
+            RESIZE: "<b>Redimensionează:</b> Scalează imaginea după o lungime și lățime date.",
+            TEXT: "<b>Text:</b> Adaugă un text pe imagine.",
+            COLOR_HISTOGRAM: "<b>Histogramă:</b> Comută histograma de culori pentru o selecție.",
+            CUT: "<b>Decupează:</b> Elimină porțiunea selectată din imagine."
+        }
+
+        this.selectedTool = this.toolEnum.NONE;
+    }
+
+    get ToolEnum() {
+        return this.toolEnum;
+    }
+
+    getToolInfo(tool) {
+        return this.toolsInfo[Object.keys(this.toolEnum).find(key => this.toolEnum[key] == tool)];
+    }
+
+    selectTool(tool) {
+        if(workspace.loadedImageExists) {
+            this.selectedTool = tool;
+
+            switch (tool) {
+                case this.toolEnum.SELECTION:
+                    selection.makeSelectionAt(0, 0, workspace.CW - 2, workspace.CH - 2);
+                    document.getElementById("select-button").classList.add("selected-tool");
+                    break;
+            }
+        }
+    }
+
+    deselectTool(tool) {
+        switch (tool) {
+            case this.toolEnum.SELECTION:
+                selection.hideSelection();
+                document.getElementById("select-button").classList.remove("selected-tool");
+
+                break;
+        }
+
+        this.selectedTool = this.toolEnum.NONE;
+    }
+}
+
+class Workspace {
+    constructor() {
+        this.workspace = document.getElementById("workspace-area");
+        this.canvas = document.getElementById("workspace-canvas");
+        this.canvCont = document.getElementById("ws-canvas-container");
+        this.context = this.canvas.getContext("2d", { willReadFrequently: true });
+        this.currentImage = new Image(0, 0);
+
+        this.CW = this.canvas.width;
+        this.CH = this.canvas.height;
+    }
+
+    get getWorkspaceElement() {
+        return this.workspace;
+    }
+
+    get getCanvasElement() {
+        return this.canvas;
+    }
+
+    get getContainingCanvasElement() {
+        return this.canvCont;
+    }
+
+    get getCanvasContext() {
+        return this.context;
+    }
+
+    get getLoadedImage() {
+        return this.currentImage;
+    }
+
+    get loadedImageExists() {
+        return Image.prototype.format ? true : false;
+    }
+
+    setCanvasSize(w, h) {
+        this.canvas.width = w;
+        this.canvas.height = h;
+        this.canvas.style.width = `${w}px`;
+        this.canvas.style.height = `${h}px`;
+        this.canvCont.style.width = `${this.canvas.width}px`;
+        this.canvCont.style.height = `${this.canvas.height}px`;
+        this.CW = this.canvas.width;
+        this.CH = this.canvas.height;
+    }
+
+    fitCanvas(imgW, imgH) {
+        const wrkRect = this.workspace.getBoundingClientRect();
+        const [wrkW, wrkH] = [wrkRect.width, wrkRect.height];
+        const perc = 0.7;
+
+        const percW = Math.round(wrkW * perc);
+        const percH = Math.round(wrkH * perc);
+
+        const fitW = imgW > imgH ? percW : Math.round(imgW * (percH / imgH));
+        const fitH = imgW < imgH ? percH : Math.round(imgH * (percW / imgW));
+
+        this.setCanvasSize(fitW, fitH);
+    }
+
+    displayOnCanvas() {
+        if(this.loadedImageExists) {
+            this.context.clearRect(0, 0, this.CW, this.CH);
+            //this.fitCanvas(this.currentImage.naturalWidth, this.currentImage.naturalHeight);
+            this.setCanvasSize(this.currentImage.naturalWidth, this.currentImage.naturalHeight);
+            this.context.drawImage(this.getLoadedImage, 0, 0, this.CW, this.CH);
+
+            loadWindow.closeLoadWindow();
+        }
+    }
+}
+
+class LoadWindow {
+    constructor() {
+        this.loadWindow = document.getElementById("load-window");
+        this.loadClose = document.getElementById("lw-close-button");
+        this.loadInput = document.getElementById("lw-load-input");
+        this.loadSubmit = document.getElementById("lw-submit-button");
+
+        this.events();
+    }
+
+    get getLoadWindowElement() {
+        return this.loadWindow;
+    }
+
+    openLoadWindow() {
+        this.loadWindow.style.visibility = "visible";
+        loadOption.disabled = true;
+        loadOption.style.cursor = "not-allowed";
+        this.loadSubmit.style.cursor = "not-allowed";
+        this.loadInput.focus();
+        this.loadInput.value = "";
+
+        darkness.style.visibility = "visible";
+    }
+
+    closeLoadWindow() {
+        this.loadWindow.style.visibility = "hidden";
+        loadOption.disabled = false;
+        loadOption.style.cursor = "pointer";
+        this.loadInput.value = "";
+
+        darkness.style.visibility = "hidden";
+    }
+
+    events() {
+        loadOption.addEventListener("click", () => this.openLoadWindow());
+        this.loadClose.addEventListener("click", () => this.closeLoadWindow());
+
+        this.loadInput.addEventListener("change", e => {
+            const reader = new FileReader();
+
+            reader.addEventListener("load", () => {
+                this.loadSubmit.disabled = false;
+                this.loadSubmit.style.cursor = "pointer";
+                this.loadSubmit.focus();
+                workspace.getLoadedImage.src = reader.result;
+
+                // Păstrăm numele original al imaginii
+                workspace.getLoadedImage.name = e.target.files[0].name.split(".")[0];
+
+                // Stocăm tipul imaginii direct în obiectul Image la nivel global, creând o nouă proprietate "format"
+                Image.prototype.format = reader.result.split(";")[0].slice(5);
+            });
+
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        this.loadSubmit.addEventListener("click", () => workspace.displayOnCanvas());
+    }
 }
 
 class Selection {
+    selMouseDown = {
+        selecting: false,
+        point: { x: 0, y: 0 }
+    };
+    
     constructor() {
-        this.x = 0;
-        this.y = 0;
-        this.w = 8;
-        this.h = 8;
-
+        [this.x, this.y, this.w, this.h] = [0, 0, 8, 8];
         this.sel = document.getElementById("selection");
 
         this.setElemX(this.x);
         this.setElemY(this.y);
         this.setElemWidth(this.w);
         this.setElemHeight(this.h);
+
+        this.events();
     }
 
     static create(x, y, w, h) {
         const sel = new Selection();
 
-        sel.x = x;
-        sel.y = y;
-        sel.w = Math.max(8, w);
-        sel.h = Math.max(8, h);
-
+        [sel.x, sel.y, sel.w, sel.h] = [x, y, Math.max(8, w), Math.max(8, h)];
         sel.sel = document.getElementById("selection");
 
         sel.setElemX(sel.getX);
         sel.setElemY(sel.getY);
         sel.setElemWidth(sel.getWidth);
         sel.setElemHeight(sel.getHeight);
+
+        sel.hideSelection();
 
         return sel;
     }
@@ -360,10 +399,12 @@ class Selection {
     }
 
     setElemWidth(w) {
+        w = Math.max(w, 8);
         this.sel.style.width = `${w}px`;
     }
 
     setElemHeight(h) {
+        h = Math.max(h, 8);
         this.sel.style.height = `${h}px`;
     }
 
@@ -381,22 +422,14 @@ class Selection {
 
     getCornerPosition(corner) {
         const point = {x: 0, y: 0};
-        const cnvRect = canvas.getBoundingClientRect();
+        const cnvRect = workspace.getCanvasElement().getBoundingClientRect();
         let crn;
 
         switch(corner) {
-            case 1:
-                crn = document.getElementById("sel-tl");
-                break;
-            case 2:
-                crn = document.getElementById("sel-tr");
-                break;
-            case 3:
-                crn = document.getElementById("sel-bl");
-                break;
-            case 4:
-                crn = document.getElementById("sel-br");
-                break;
+            case 1: crn = document.getElementById("sel-tl"); break;
+            case 2: crn = document.getElementById("sel-tr"); break;
+            case 3: crn = document.getElementById("sel-bl"); break;
+            case 4: crn = document.getElementById("sel-br"); break;
         }
 
         const cornerRect = crn.getBoundingClientRect();
@@ -408,34 +441,91 @@ class Selection {
     }
 
     // Colturi: 1-4
-    makeSelectionAt(x, y, w, h, corner) {
-        if(this.sel.style.display == "none") {
+    makeSelectionAt(x, y, w, h, corner = 4) {
+        if (this.sel.style.display == "none") {
             this.sel.style.display = "grid";
         }
 
         switch(corner) {
             case 1:
-                this.sel.style.transformOrigin = "100% 100%";
+                const diffX = x - this.x;
+                const diffY = y - this.y;
+                x = w;
+                y = h;
                 break;
-            case 2:
+            case 2: 
                 this.sel.style.transformOrigin = "100% 0";
                 break;
-            case 3:
+            case 3: 
                 this.sel.style.transformOrigin = "0 100%";
                 break;
-            case 4:
+            case 4: 
                 this.sel.style.transformOrigin = "0 0";
                 break;
         }
+
+        this.selMouseDown.point = {x, y};
 
         this.setElemX(x);
         this.setElemY(y);
         this.setElemWidth(w);
         this.setElemHeight(h);
 
-        this.x = x;
-        this.y = y;
-        this.w = w;
-        this.h = h;
+        [this.x, this.y, this.w, this.h] = [x, y, w, h]
+    }
+
+    finishSelecting() {
+        this.selMouseDown.selecting = false;
+    }
+
+    hideSelection() {
+        this.sel.style.display = "none";
+    }
+
+    events() {
+        const canvCont = workspace.getContainingCanvasElement;
+
+        canvCont.addEventListener("mouseup", () => this.finishSelecting());
+        canvCont.addEventListener("mouseleave", () => this.finishSelecting());
+
+        workspace.getWorkspaceElement.addEventListener("dblclick", () => {
+            if (this.sel.style.display != "none") {
+                toolbar.deselectTool(toolbar.ToolEnum.SELECTION);
+            }
+        });
+
+        document.getElementById("sel-br").addEventListener("mousedown", () => {
+            this.selMouseDown.selecting = true;
+        });
+
+        canvCont.addEventListener("mousedown", e => {
+            if (e.target.classList.contains("sel-node")) return;
+            if (!workspace.loadedImageExists) return;
+
+            toolbar.deselectTool(toolbar.ToolEnum.SELECTION);
+
+            const rect = canvCont.getBoundingClientRect();
+            const x = Math.round(Math.max(0, e.clientX - rect.left));
+            const y = Math.round(Math.max(0, e.clientY - rect.top));
+
+            this.selMouseDown.point = { x, y };
+            this.selMouseDown.selecting = true;
+        });
+
+        canvCont.addEventListener("mousemove", e => {
+            const rect = canvCont.getBoundingClientRect();
+            const x = this.selMouseDown.point.x;
+            const y = this.selMouseDown.point.y;
+            const w = Math.round(Math.max(0, (e.clientX - rect.left) - x));
+            const h = Math.round(Math.max(0, (e.clientY - rect.top) - y));
+
+            if ((x + w) >= rect.width || (y + h) >= rect.height) {
+                this.finishSelecting();
+                return;
+            }
+
+            if(this.selMouseDown.selecting)
+                this.makeSelectionAt(x, y, w, h, 4);
+        });
     }
 }

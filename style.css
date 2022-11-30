@@ -65,6 +65,7 @@ button {
     display: flex;
     justify-content: center;
     align-items: center;
+    user-select: none;
 
     grid-area: l;
 }
@@ -85,6 +86,7 @@ button {
 #bars {
     display: grid;
     grid-template-rows: 50% 50%;
+    user-select: none;
 
     grid-area: b;
 }
@@ -186,6 +188,7 @@ button {
     padding-top: 10px;
     border-bottom-left-radius: 10px;
     border-top-left-radius: 10px;
+    user-select: none;
 
     display: flex;
     flex-direction: column;
@@ -208,7 +211,7 @@ button {
     cursor: pointer;
 }
 
-#toolpicker > img:hover {
+#toolpicker > img:hover, #toolpicker > .selected-tool {
     background-color: var(--gray3);
     border: 1px solid var(--gray4);
 }
@@ -221,20 +224,41 @@ button {
     border-bottom-right-radius: 10px;
 
     display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
+    overflow: scroll;
 
     grid-area: w;
 }
 
+#workspace-area::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+#workspace-area::-webkit-scrollbar-track {
+    background-color: var(--gray5);
+}
+
+#workspace-area::-webkit-scrollbar-thumb {
+    background-color: var(--gray2);
+}
+
+#workspace-area::-webkit-scrollbar-thumb:hover {
+    background-color: var(--gray3);
+}
+
 #ws-canvas-container {
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #selection {
     position: absolute;
     transform-origin: 0 0;
+    width: 1px;
+    height: 1px;
+    z-index: 3;
 
     border: 1px dashed cornflowerblue;
 
@@ -243,14 +267,13 @@ button {
     grid-template-rows: 1fr 1fr;
 }
 
-.sel-handle {
+.sel-node {
     position: relative;
     transform-origin: 50% 50%;
-    width: 2px;
-    height: 2px;
-    background-color: white;
-    border: 1px solid gray;
-    cursor: pointer;
+    width: 3px;
+    height: 3px;
+    background-color: var(--orange);
+    border: 1px solid orangered;
 }
 
 #sel-tl {
@@ -271,6 +294,9 @@ button {
     justify-self: end;
     align-self: end;
     transform: translate(2px, 2px);
+    cursor: pointer;
+    background-color: white;
+    border: 1px solid gray;
 }
 
 #workspace-canvas {
