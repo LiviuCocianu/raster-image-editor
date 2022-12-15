@@ -3,6 +3,8 @@ var infoTextbox;
 var toolbar;
 var workspace;
 var selection;
+var crop;
+var effects;
 
 // Toolbar
 var loadOption, saveOption;
@@ -22,6 +24,8 @@ window.onload = () => {
     infoTextbox = new InfoTextbox();
     workspace = new Workspace();
     selection = Selection.create(0, 0, 1, 1);
+    crop = new Cropping();
+    effects = new Effects();
 
     // Fereastra de load
     darkness = document.getElementById("darkness");
@@ -34,8 +38,6 @@ window.onload = () => {
 function initializareEvenimente() {
     saveOption.addEventListener("click", e => {
         if(workspace.loadedImageExists) {
-            e.preventDefault();
-
             const a = document.createElement("a");
 
             a.style.display = "none";
@@ -56,22 +58,20 @@ function initializareEvenimente() {
     mărimii inițiale a ferestrei.
 */
 function ajustareDimensiuneAplicatie() {
-    const workspaceDiv = document.getElementById("workspace-area");
     const barsDiv = document.getElementById("bars");
     const toolpickerDiv = document.getElementById("toolpicker");
     const canvCont = workspace.getContainingCanvasElement;
+    const workspaceRect = workspace.getWorkspaceElement.getBoundingClientRect();
+    const padding = parseInt(window.getComputedStyle(toolpickerDiv).paddingTop.replace(/[^\d+]/ig, ""));
 
     canvCont.style.width = `${canvCont.getBoundingClientRect().width}px`;
     canvCont.style.height = `${canvCont.getBoundingClientRect().height}px`;
 
-    const workspaceRect = workspaceDiv.getBoundingClientRect();
+    workspace.getWorkspaceElement.style.width = workspaceRect.width + "px";
+    workspace.getWorkspaceElement.style.height = workspaceRect.height + "px";
+
     barsDiv.style.width = workspaceRect.width + "px";
-
-    const padding = parseInt(window.getComputedStyle(toolpickerDiv).paddingTop.replace(/[^\d+]/ig, ""));
     toolpickerDiv.style.height = (workspaceRect.height - padding) + "px";
-
-    workspaceDiv.style.width = workspaceRect.width + "px";
-    workspaceDiv.style.height = workspaceRect.height + "px";
 }
 
 class InfoTextbox {
@@ -170,6 +170,8 @@ class Toolbar {
         }
 
         this.selectedTool = this.toolEnum.NONE;
+
+        this.events();
     }
 
     get ToolEnum() {
@@ -186,7 +188,7 @@ class Toolbar {
 
             switch (tool) {
                 case this.toolEnum.SELECTION:
-                    selection.makeSelectionAt(0, 0, workspace.CW - 2, workspace.CH - 2);
+                    selection.makeSelectionAt(0, 0, workspace.CW, workspace.CH);
                     document.getElementById("select-button").classList.add("selected-tool");
                     break;
             }
@@ -196,13 +198,22 @@ class Toolbar {
     deselectTool(tool) {
         switch (tool) {
             case this.toolEnum.SELECTION:
-                selection.hideSelection();
                 document.getElementById("select-button").classList.remove("selected-tool");
-
                 break;
         }
 
         this.selectedTool = this.toolEnum.NONE;
+    }
+
+    events() {
+        Array.from(document.getElementsByClassName("tool")).forEach(el => {
+            el.addEventListener("click", e => {
+                const toolFromID = e.target.id.split("-")[0];
+
+                if(!workspace.loadedImageExists) e.stopImmediatePropagation();
+                if(toolFromID != "effects") effects.setOriginalImageURL(undefined);
+            });
+        });
     }
 }
 
@@ -242,6 +253,10 @@ class Workspace {
         return Image.prototype.format ? true : false;
     }
 
+    get getDataURL() {
+        return this.canvas.toDataURL(Image.prototype.format, 1.0);
+    }
+
     setCanvasSize(w, h) {
         this.canvas.width = w;
         this.canvas.height = h;
@@ -270,7 +285,6 @@ class Workspace {
     displayOnCanvas() {
         if(this.loadedImageExists) {
             this.context.clearRect(0, 0, this.CW, this.CH);
-            //this.fitCanvas(this.currentImage.naturalWidth, this.currentImage.naturalHeight);
             this.setCanvasSize(this.currentImage.naturalWidth, this.currentImage.naturalHeight);
             this.context.drawImage(this.getLoadedImage, 0, 0, this.CW, this.CH);
 
@@ -390,6 +404,18 @@ class Selection {
         return this.h;
     }
 
+    get getDimensions() {
+        return [this.x, this.y, this.w, this.h]
+    }
+
+    get getImageData() {
+        return workspace.getCanvasContext.getImageData(this.x, this.y, this.w, this.h);
+    }
+
+    get isMade() {
+        return this.sel.style.display != "none";
+    }
+
     setElemX(x) {
         this.sel.style.left = `${x}px`;
     }
@@ -408,11 +434,25 @@ class Selection {
         this.sel.style.height = `${h}px`;
     }
 
+    getPixelAt(x, y) {
+        const xValid = x >= 0 && x <= workspace.CW;
+        const yValid = y >= 0 && y <= workspace.CH;
+        return xValid && yValid ? {x, y} : 0;
+    }
+
+    getImagePixelAt(x, y) {
+        const pos = (y - this.y) * (this.w * 4) + (x - this.x) * 4;
+        const maxX = this.x + this.w;
+        const maxY = this.y + this.h;
+        const max = maxY * (this.w * 4) + maxX * 4;
+        return pos >= 0 && pos <= max ? pos : 0;
+    }
+
     getPixelPositions() {
         let pixels = [];
 
-        for(let i = this.x; i < this.w; i++) {
-            for(let j = this.y; i < this.h; i++) {
+        for(let j = this.y; j <= this.y + this.h; j++) {
+            for(let i = this.x; i <= this.x + this.w; i++) {
                 pixels.push({x: i, y: j});
             }
         }
@@ -420,48 +460,22 @@ class Selection {
         return pixels;
     }
 
-    getCornerPosition(corner) {
-        const point = {x: 0, y: 0};
-        const cnvRect = workspace.getCanvasElement().getBoundingClientRect();
-        let crn;
+    getImageDataPixelPositions() {
+        let pixels = [];
 
-        switch(corner) {
-            case 1: crn = document.getElementById("sel-tl"); break;
-            case 2: crn = document.getElementById("sel-tr"); break;
-            case 3: crn = document.getElementById("sel-bl"); break;
-            case 4: crn = document.getElementById("sel-br"); break;
+        for(let j = this.y; j <= this.y + this.h; j++) {
+            for(let i = this.x; i <= this.x + this.w; i++) {
+                const pos = j * (workspace.CW * 4) + i * 4;
+                pixels.push(pos);
+            }
         }
 
-        const cornerRect = crn.getBoundingClientRect();
-
-        point.x = Math.round(cornerRect.left - cnvRect.left + 1);
-        point.y = Math.round(cornerRect.top - cnvRect.top + 1);
-
-        return point;
+        return pixels;
     }
 
-    // Colturi: 1-4
-    makeSelectionAt(x, y, w, h, corner = 4) {
+    makeSelectionAt(x, y, w, h) {
         if (this.sel.style.display == "none") {
             this.sel.style.display = "grid";
-        }
-
-        switch(corner) {
-            case 1:
-                const diffX = x - this.x;
-                const diffY = y - this.y;
-                x = w;
-                y = h;
-                break;
-            case 2: 
-                this.sel.style.transformOrigin = "100% 0";
-                break;
-            case 3: 
-                this.sel.style.transformOrigin = "0 100%";
-                break;
-            case 4: 
-                this.sel.style.transformOrigin = "0 0";
-                break;
         }
 
         this.selMouseDown.point = {x, y};
@@ -480,6 +494,7 @@ class Selection {
 
     hideSelection() {
         this.sel.style.display = "none";
+        toolbar.deselectTool(toolbar.ToolEnum.SELECTION);
     }
 
     events() {
@@ -490,7 +505,7 @@ class Selection {
 
         workspace.getWorkspaceElement.addEventListener("dblclick", () => {
             if (this.sel.style.display != "none") {
-                toolbar.deselectTool(toolbar.ToolEnum.SELECTION);
+                this.hideSelection();
             }
         });
 
@@ -527,5 +542,236 @@ class Selection {
             if(this.selMouseDown.selecting)
                 this.makeSelectionAt(x, y, w, h, 4);
         });
+    }
+}
+
+class Cropping {
+    constructor() {
+        this.events();
+    }
+
+    crop() {
+        let currImgData = selection.getImageData;
+
+        workspace.setCanvasSize(selection.getWidth, selection.getHeight);
+        workspace.getCanvasContext.putImageData(currImgData, 0, 0);
+
+        selection.hideSelection();
+    }
+
+    events() {
+        document.getElementById("crop-button").addEventListener("click", () => {
+            if(selection.isMade) this.crop();
+        })
+    }
+}
+
+class Effects {
+    constructor() {
+        this.effectsDropdown = document.getElementById("effects-dropdown");
+        this.effectsDropdown.style.display = "none";
+
+        this.brightnessSettings = document.getElementById("brightness-settings");
+        this.brightnessSliderVisible = false;
+
+        this.originalImageURL = undefined;
+
+        this.kernels =  {
+            emboss: [-2, -1, 0, -1, 1, 1, 0, 1, 2],
+            gaussian: [ 1/16, 2/16, 1/16, 2/16, 4/16, 2/16, 1/16, 2/16, 1/16 ],
+            shadow: [1, 2, 1, 0, 1, 0, -1, -2, -1],
+            sharpen: [0, -1, 0, -1, 5, -1, 0, -1, 0],
+            sharpenless: [0, -1, 0, -1, 10, -1, 0, -1, 0]
+        };
+
+        this.events();
+    }
+
+    get getOriginalImageURL() {
+        return this.originalImageURL;
+    }
+
+    setOriginalImageURL(url) {
+        this.originalImageURL = url;
+    }
+
+    _normalize(kernel) {
+        const out = [];
+        let sum = kernel.reduce((acc, val) => acc + val, 0);
+        sum = sum <= 0 ? 1 : sum;
+
+        for(let i = 0; i < kernel.length; i++)
+            out.push(kernel[i] / sum);
+
+        return out;
+    }
+
+    _convolute(kernel) {
+        if(this.originalImageURL == undefined) {
+            this.setOriginalImageURL(workspace.getDataURL);
+        }
+
+        kernel = this._normalize(kernel);
+
+        const imgData = workspace.getCanvasContext.getImageData(...selection.getDimensions)
+        const newImgData = workspace.getCanvasContext.createImageData(selection.getWidth, selection.getHeight);
+        const newData = newImgData.data;
+
+        const pixelPosList = selection.getPixelPositions();
+
+        for(let i = 0; i < pixelPosList.length; i++) {
+            const pixelPos = pixelPosList[i];
+            const imgPixelPos = selection.getImagePixelAt(pixelPos.x, pixelPos.y);
+
+            let [red, green, blue, alpha] = this._kernelSum(kernel, pixelPos, imgData);
+
+            newData[imgPixelPos] = red;
+            newData[imgPixelPos + 1] = green;
+            newData[imgPixelPos + 2] = blue;
+            newData[imgPixelPos + 3] = alpha;
+        }
+
+        workspace.getCanvasContext.putImageData(newImgData, selection.getX, selection.getY);
+    }
+
+    _kernelSum(kernel, pixelPos, imgData) {
+        const data = imgData.data;
+        let [red, green, blue, alpha] = [0, 0, 0, 0];
+        const pixelGrid = [];
+
+        for(let y = pixelPos.y - 1; y < pixelPos.y + 2; y++) {
+            for(let x = pixelPos.x - 1; x < pixelPos.x + 2; x++) {
+                pixelGrid.push(selection.getPixelAt(x, y));
+            }
+        }
+
+        for (let j = 0; j < kernel.length; j++) {
+            if (pixelGrid[j] != 0) {
+                let pixelValue = selection.getImagePixelAt(pixelGrid[j].x, pixelGrid[j].y);
+
+                red += data[pixelValue] * kernel[j];
+                green += data[pixelValue + 1] * kernel[j];
+                blue += data[pixelValue + 2] * kernel[j];
+                alpha += data[pixelValue + 3] * kernel[j];
+            }
+        }
+
+        return [red, green, blue, alpha];
+    }
+
+    _kernelessEffect(effect, brightness=25) {
+        if(this.originalImageURL == undefined) {
+            this.setOriginalImageURL(workspace.getDataURL);
+        }
+
+        switch(effect) {
+            case "brightness":
+                this._forColorsInSelection((data, pos, r, g, b, a) => {
+                    data[pos] = r + 255 * (brightness / 100);
+                    data[pos + 1] = g + 255 * (brightness / 100);
+                    data[pos + 2] = b + 255 * (brightness / 100);
+                    data[pos + 3] = a;
+                });
+                break;
+            case "grayscale":
+                this._forColorsInSelection((data, pos, r, g, b, a) => {
+                    data[pos] = data[pos + 1] = data[pos + 2] = 0.2126*r + 0.7152*g + 0.0722*b;
+                    data[pos + 3] = a;
+                });
+                break;
+            case "inverted":
+                this._forColorsInSelection((data, pos, r, g, b, a) => {
+                    data[pos] = 255 - r;
+                    data[pos + 1] = 255 - g;
+                    data[pos + 2] = 255 - b;
+                    data[pos + 3] = a;
+                });
+                break;
+            case "sepia":
+                this._forColorsInSelection((data, pos, r, g, b, a) => {
+                    data[pos] = 0.393*r + 0.769*g + 0.189*b;
+                    data[pos + 1] = 0.349*r + 0.686*g + 0.168*b;
+                    data[pos + 2] = 0.272*r + 0.534*g + 0.131*b;
+                    data[pos + 3] = a;
+                });
+                break;
+            case "none":
+                if(this.originalImageURL != undefined) {
+                    workspace.getLoadedImage.src = this.originalImageURL;
+                    this.setOriginalImageURL(undefined);
+
+                    const redrawImage = () => {
+                        workspace.getCanvasContext.clearRect(...selection.getDimensions);
+                        workspace.getCanvasContext.drawImage(workspace.getLoadedImage, ...selection.getDimensions);
+                    };
+
+                    workspace.getLoadedImage.addEventListener("load", redrawImage);
+                    setTimeout(() => {
+                        workspace.getLoadedImage.removeEventListener("load", redrawImage);
+                    }, 5000);
+                }
+                break;
+        }
+    }
+
+    _forColorsInSelection(rgbaFunc) {
+        const imgData = selection.getImageData;
+        const data = imgData.data;
+        const newImgData = workspace.getCanvasContext.createImageData(selection.getWidth, selection.getHeight);
+        const newData = newImgData.data;
+
+        const pixelPosList = selection.getPixelPositions();
+
+        for(let i = 0; i < pixelPosList.length; i++) {
+            const pixelPos = pixelPosList[i];
+            const imgPixelPos = selection.getImagePixelAt(pixelPos.x, pixelPos.y);
+
+            rgbaFunc(newData, imgPixelPos, data[imgPixelPos], data[imgPixelPos + 1], data[imgPixelPos + 2], data[imgPixelPos + 3]);
+        }
+
+        workspace.getCanvasContext.putImageData(newImgData, selection.getX, selection.getY);
+    }
+
+    events() {
+        document.getElementById("effects-button").addEventListener("click", e => {
+            this.effectsDropdown.style.left = e.clientX + "px";
+            this.effectsDropdown.style.top = e.clientY + "px";
+            this.effectsDropdown.style.display = "flex";
+        });
+
+        this.effectsDropdown.addEventListener("mouseleave", () => {
+            this.effectsDropdown.style.display = "none";
+            
+            this.toggleEffectInput("brightness", false);
+        });
+
+        document.getElementById("apply-brightness").addEventListener("click", () => {
+            const value = parseInt(document.getElementById("brightness-slider").value);
+            this._kernelessEffect("brightness", value);
+        });
+
+        Array.from(document.getElementsByClassName("fx-button")).forEach(btn => {
+            const fxFromID = btn.id.split("-")[1];
+
+            if(this.kernels.hasOwnProperty(fxFromID)) {
+                btn.addEventListener("click", () => this._convolute(this.kernels[fxFromID]));
+            } else if(fxFromID == "brightness") {
+                btn.addEventListener("click", () => this.toggleEffectInput("brightness", !this.brightnessSliderVisible));
+            } else {
+                btn.addEventListener("click", () => this._kernelessEffect(fxFromID));
+            }
+        });
+    }
+
+    toggleEffectInput(effect, visible) {
+        const display = !visible ? "none" : "grid";
+
+        switch(effect) {
+            case "brightness":
+                this.brightnessSettings.style.display = display;
+                this.brightnessSliderVisible = visible;
+                document.getElementById("brightness-slider").value = 0;
+                break;
+        }
     }
 }

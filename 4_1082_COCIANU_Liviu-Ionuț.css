@@ -217,6 +217,81 @@ button {
 }
 
 
+#effects-dropdown {
+    width: 8em;
+    background-color: var(--gray4);
+    z-index: 4;
+    padding: 1px;
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1em;
+
+    border: 2px solid var(--gray1);
+    border-radius: 5px;
+}
+
+.fx-button {
+    width: 100%;
+    background-color: var(--gray1);
+    color: var(--gray5);
+    border: none;
+    border-radius: 4px;
+    margin-top: 1px;
+    padding-block-start: 0.2em;
+    padding-block-end: 0.2em;
+    text-align: start;
+    transition: color 0.5s;
+    font-family: "Ubuntu Mono";
+}
+
+.fx-button:hover {
+    color: var(--orange);
+    transition: color 0.5s;
+}
+
+#effect-none {
+    color: var(--orange);
+    font-weight: bold;
+}
+
+.apply-button {
+    width: 2em;
+    background-color: var(--orange);
+    color: var(--gray1);
+    border: none;
+    border-radius: 4px;
+    font-family: "Ubuntu Mono";
+    margin: auto;
+    border: 1px solid var(--gray1);
+    font-weight: bold;
+}
+
+#effects-dropdown input[type="range"] {
+    appearance: none;
+    width: 90%;
+    height: 0.5em;
+    border-radius: 5px;
+    background: var(--gray2);
+    margin: auto;
+}
+
+#effects-dropdown input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 1em;
+    height: 1em;
+    background-color: var(--gray1);
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.effect-setting {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    margin-bottom: 0.5em;
+}
+
 /* == Workspace area ============== */
 /* (canvas area) */
 #workspace-area {

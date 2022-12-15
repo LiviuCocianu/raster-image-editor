@@ -3,8 +3,8 @@
 <html>
 
 <head>
-    <link rel="stylesheet" href="style.css">
-    <script src="index.js"></script>
+    <link rel="stylesheet" href="4_1082_COCIANU_Liviu-Ionuț.css">
+    <script src="4_1082_COCIANU_Liviu-Ionuț.js"></script>
 </head>
 
 <body>
@@ -40,6 +40,25 @@
             <img class="tool" id="text-button" src="media/text-icon.png" alt="TEXT" onclick="toolbar.selectTool(toolbar.ToolEnum.TEXT)">
             <img class="tool" id="graph-button" src="media/histogram-icon.png" alt="COLOR_HISTOGRAM" onclick="toolbar.selectTool(toolbar.ToolEnum.COLOR_HISTOGRAM)">
             <img class="tool" id="cut-button" src="media/cut-icon.png" alt="CUT" onclick="toolbar.selectTool(toolbar.ToolEnum.CUT)">
+
+            <div id="effects-dropdown">
+                <button class="fx-button" id="effect-none">None</button>
+
+                <button class="fx-button" id="effect-brightness">Brightness</button>
+                <div class="effect-setting" id="brightness-settings" style="display: none">
+                    <input type="range" name="brightness" id="brightness-slider" min="0" max="100" value="0">
+                    <button class="apply-button" id="apply-brightness">OK</button>
+                </div>
+                
+                <button class="fx-button" id="effect-emboss">Emboss</button>
+                <button class="fx-button" id="effect-gaussian">Gaussian Blur</button>
+                <button class="fx-button" id="effect-grayscale">Grayscale</button>
+                <button class="fx-button" id="effect-inverted">Inverted</button>
+                <button class="fx-button" id="effect-sepia">Sepia</button>
+                <button class="fx-button" id="effect-shadow">Shadow</button>
+                <button class="fx-button" id="effect-sharpen">Sharpen</button>
+                <button class="fx-button" id="effect-sharpenless">Sharpenless</button>
+            </div>
         </div>
 
         <div id="workspace-area">
