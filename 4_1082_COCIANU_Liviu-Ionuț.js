@@ -46,6 +46,8 @@ function initializareEvenimente() {
 
             a.click();
             a.remove();
+        } else {
+            infoTextbox.warn(infoTextbox.warnings.saveNoImage);
         }
     });
 }
@@ -82,6 +84,15 @@ class InfoTextbox {
 
         this.fullInfoText;
         this.infoTextLimit = Math.ceil(this.infoTextbox.getBoundingClientRect().width * 0.112);
+        this.warnTimeoutID = -1;
+
+        this.warnings = {
+            toolNoImage: "Încarcă o imagine pentru a folosi instrumentele!",
+            saveNoImage: "Încarcă o imagine pentru a putea salva!",
+            cropNoSelection: "Selectează o regiune pe imagine înainte de a decupa!",
+            effectNoSelection: "Selectează o regiune pe imagine înainte de a aplica un efect!",
+            selectionEqualWorkspace: "Decupare redundantă!"
+        }
 
         this.infoDefault();
 
@@ -107,8 +118,32 @@ class InfoTextbox {
     }
 
     info(text) {
+        if(this.warnTimeoutID != -1) {
+            clearTimeout(this.warnTimeoutID);
+            this.warnTimeoutID = -1;
+        }
+
+        this.infoOwnText.classList.remove("warn-text");
+
         this.setInfoText(text);
         this.infoOwnText.style.color = "var(--mild-black)";
+    }
+
+    warn(text) {
+        if(this.warnTimeoutID != -1) {
+            clearTimeout(this.warnTimeoutID);
+            this.warnTimeoutID = -1;
+        }
+
+        this.setInfoText("<b>Warning!</b> " + text);
+        this.infoOwnText.style.textShadow = "var(--gray3) 1px 1px 2px";
+        this.infoOwnText.classList.add("warn-text");
+
+        this.warnTimeoutID = setTimeout(() => {
+            this.infoDefault();
+            this.infoOwnText.style.textShadow = "none";
+            this.infoOwnText.classList.remove("warn-text");
+        }, 5000);
     }
 
     events() {
@@ -166,7 +201,7 @@ class Toolbar {
             RESIZE: "<b>Redimensionează:</b> Scalează imaginea după o lungime și lățime date.",
             TEXT: "<b>Text:</b> Adaugă un text pe imagine.",
             COLOR_HISTOGRAM: "<b>Histogramă:</b> Comută histograma de culori pentru o selecție.",
-            CUT: "<b>Decupează:</b> Elimină porțiunea selectată din imagine."
+            CUT: "<b>Șterge:</b> Elimină porțiunea selectată din imagine."
         }
 
         this.selectedTool = this.toolEnum.NONE;
@@ -210,7 +245,10 @@ class Toolbar {
             el.addEventListener("click", e => {
                 const toolFromID = e.target.id.split("-")[0];
 
-                if(!workspace.loadedImageExists) e.stopImmediatePropagation();
+                if(!workspace.loadedImageExists) {
+                    e.stopImmediatePropagation();
+                    infoTextbox.warn(infoTextbox.warnings.toolpickNoImage);
+                }
                 if(toolFromID != "effects") effects.setOriginalImageURL(undefined);
             });
         });
@@ -347,7 +385,7 @@ class LoadWindow {
                 Image.prototype.format = reader.result.split(";")[0].slice(5);
             });
 
-            reader.readAsDataURL(e.target.files[0]);
+            if(e.target.files.length > 0) reader.readAsDataURL(e.target.files[0]);
         });
 
         this.loadSubmit.addEventListener("click", () => workspace.displayOnCanvas());
@@ -561,7 +599,13 @@ class Cropping {
 
     events() {
         document.getElementById("crop-button").addEventListener("click", () => {
-            if(selection.isMade) this.crop();
+            if(selection.isMade) {
+                const [x, y, w, h] = selection.getDimensions;
+
+                if(x == 0 && y == 0 && w == workspace.CW && h == workspace.CH) {
+                    infoTextbox.warn(infoTextbox.warnings.selectionEqualWorkspace);
+                } else this.crop();
+            } else infoTextbox.warn(infoTextbox.warnings.cropNoSelection);
         })
     }
 }
@@ -607,6 +651,11 @@ class Effects {
     }
 
     _convolute(kernel) {
+        if(!selection.isMade) {
+            infoTextbox.warn(infoTextbox.warnings.effectNoSelection);
+            return;
+        }
+
         if(this.originalImageURL == undefined) {
             this.setOriginalImageURL(workspace.getDataURL);
         }
@@ -660,6 +709,11 @@ class Effects {
     }
 
     _kernelessEffect(effect, brightness=25) {
+        if(!selection.isMade) {
+            infoTextbox.warn(infoTextbox.warnings.effectNoSelection);
+            return;
+        }
+
         if(this.originalImageURL == undefined) {
             this.setOriginalImageURL(workspace.getDataURL);
         }

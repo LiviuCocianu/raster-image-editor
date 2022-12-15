@@ -10,6 +10,7 @@
     --gray5: #DFE0E0;
     --orange: #EF8354;
     --mild-black: #212430;
+    --warning-red: #f76157;
 }
 
 #darkness {
@@ -149,6 +150,12 @@ button {
 
 #info-tooltip-text {
     height: 1em;
+}
+
+.warn-text {
+    animation-name: warnText;
+    animation-duration: 2s;
+    animation-timing-function: steps(1);
 }
 
 
@@ -483,5 +490,27 @@ button {
 
     to {
         opacity: 0;
+    }
+}
+
+@keyframes warnText {
+    0% {
+        color: var(--warning-red);
+    }
+
+    20% {
+        color: var(--mild-black);
+    }
+
+    40% {
+        color: var(--warning-red);
+    }
+
+    60% {
+        color: var(--mild-black);
+    }
+
+    80% {
+        color: var(--warning-red);
     }
 }
