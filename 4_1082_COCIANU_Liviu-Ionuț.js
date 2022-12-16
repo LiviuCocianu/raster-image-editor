@@ -5,6 +5,7 @@ var workspace;
 var selection;
 var crop;
 var effects;
+var resize;
 
 // Toolbar
 var loadOption, saveOption;
@@ -12,6 +13,9 @@ var loadOption, saveOption;
 // Fereastra de load
 var darkness;
 var loadWindow;
+
+// Constante
+const maxImagePxSize = 3000;
 
 window.onload = () => {
     // Toolbar
@@ -26,6 +30,7 @@ window.onload = () => {
     selection = Selection.create(0, 0, 1, 1);
     crop = new Cropping();
     effects = new Effects();
+    resize = new Resize();
 
     // Fereastra de load
     darkness = document.getElementById("darkness");
@@ -76,6 +81,13 @@ function ajustareDimensiuneAplicatie() {
     toolpickerDiv.style.height = (workspaceRect.height - padding) + "px";
 }
 
+function onImageLoad(element, func) {
+    element.addEventListener("load", func);
+    setTimeout(() => {
+        element.removeEventListener("load", func);
+    }, 5000);
+}
+
 class InfoTextbox {
     constructor() {
         this.infoTextbox = document.getElementById("info-tooltip-textbox");
@@ -87,11 +99,15 @@ class InfoTextbox {
         this.warnTimeoutID = -1;
 
         this.warnings = {
+            imageTooBig: `Dimensiunea imaginii depășește limita de ${maxImagePxSize}px!`,
             toolNoImage: "Încarcă o imagine pentru a folosi instrumentele!",
             saveNoImage: "Încarcă o imagine pentru a putea salva!",
             cropNoSelection: "Selectează o regiune pe imagine înainte de a decupa!",
             effectNoSelection: "Selectează o regiune pe imagine înainte de a aplica un efect!",
-            selectionEqualWorkspace: "Decupare redundantă!"
+            selectionEqualWorkspace: "Decupare redundantă!",
+            resizeInvalidInputs: "Cămpuri invalide pentru redimensionare!",
+            redundantResize: "Redimensionare redundantă!",
+            resizeTooBig: `Noua dimensiune depășește limita de ${maxImagePxSize}px!`
         }
 
         this.infoDefault();
@@ -198,7 +214,7 @@ class Toolbar {
             SELECTION: "<b>Selectează:</b> Selectează o porțiune din imagine sau toată imaginea.",
             CROP: "<b>Decupează:</b> Decupează imaginea conform unei selecții făcute cu Select.",
             EFFECTS: "<b>Efecte:</b> Aplică un filtru pe porțiunea selectată.",
-            RESIZE: "<b>Redimensionează:</b> Scalează imaginea după o lungime și lățime date.",
+            RESIZE: "<b>Redimensionează:</b> Scalează imaginea după o lungime sau lățime date.",
             TEXT: "<b>Text:</b> Adaugă un text pe imagine.",
             COLOR_HISTOGRAM: "<b>Histogramă:</b> Comută histograma de culori pentru o selecție.",
             CUT: "<b>Șterge:</b> Elimină porțiunea selectată din imagine."
@@ -247,8 +263,9 @@ class Toolbar {
 
                 if(!workspace.loadedImageExists) {
                     e.stopImmediatePropagation();
-                    infoTextbox.warn(infoTextbox.warnings.toolpickNoImage);
+                    infoTextbox.warn(infoTextbox.warnings.toolNoImage);
                 }
+
                 if(toolFromID != "effects") effects.setOriginalImageURL(undefined);
             });
         });
@@ -329,6 +346,10 @@ class Workspace {
             loadWindow.closeLoadWindow();
         }
     }
+
+    saveCanvasToImage() {
+        this.currentImage.src = this.getDataURL;
+    }
 }
 
 class LoadWindow {
@@ -373,16 +394,28 @@ class LoadWindow {
             const reader = new FileReader();
 
             reader.addEventListener("load", () => {
-                this.loadSubmit.disabled = false;
-                this.loadSubmit.style.cursor = "pointer";
-                this.loadSubmit.focus();
                 workspace.getLoadedImage.src = reader.result;
 
-                // Păstrăm numele original al imaginii
-                workspace.getLoadedImage.name = e.target.files[0].name.split(".")[0];
+                const checkBefore = () => {
+                    if(workspace.getLoadedImage.naturalWidth > maxImagePxSize 
+                        || workspace.getLoadedImage.naturalHeight > maxImagePxSize) {
+                            this.closeLoadWindow();
+                            infoTextbox.warn(infoTextbox.warnings.imageTooBig);
+                            return;
+                    }
 
-                // Stocăm tipul imaginii direct în obiectul Image la nivel global, creând o nouă proprietate "format"
-                Image.prototype.format = reader.result.split(";")[0].slice(5);
+                    this.loadSubmit.disabled = false;
+                    this.loadSubmit.style.cursor = "pointer";
+                    this.loadSubmit.focus();
+
+                    // Păstrăm numele original al imaginii
+                    workspace.getLoadedImage.name = e.target.files[0].name.split(".")[0];
+
+                    // Stocăm tipul imaginii direct în obiectul Image la nivel global, creând o nouă proprietate "format"
+                    Image.prototype.format = reader.result.split(";")[0].slice(5);
+                };
+
+                onImageLoad(workspace.getLoadedImage, checkBefore);
             });
 
             if(e.target.files.length > 0) reader.readAsDataURL(e.target.files[0]);
@@ -759,10 +792,7 @@ class Effects {
                         workspace.getCanvasContext.drawImage(workspace.getLoadedImage, ...selection.getDimensions);
                     };
 
-                    workspace.getLoadedImage.addEventListener("load", redrawImage);
-                    setTimeout(() => {
-                        workspace.getLoadedImage.removeEventListener("load", redrawImage);
-                    }, 5000);
+                    onImageLoad(workspace.getLoadedImage, redrawImage);
                 }
                 break;
         }
@@ -827,5 +857,100 @@ class Effects {
                 document.getElementById("brightness-slider").value = 0;
                 break;
         }
+    }
+}
+
+class Resize {
+    constructor() {
+        this.resizeWindow = document.getElementById("resize-window");
+        this.widthInput = document.getElementById("resize-width");
+        this.heightInput = document.getElementById("resize-height");
+
+        this.events();
+    }
+
+    calculateWidth(height) {
+        const diffProcH = (workspace.CH - height)/workspace.CH;
+        const newWidth = workspace.CW - (workspace.CW * diffProcH);
+        return Math.round(newWidth);
+    }
+
+    calculateHeight(width) {
+        const diffProcW = (workspace.CW - width)/workspace.CW;
+        const newHeight = workspace.CH - (workspace.CH * diffProcW);
+        return Math.round(newHeight);
+    }
+
+    resize(width, height) {
+        workspace.saveCanvasToImage();
+
+        const resizeImg = () => {
+            workspace.getCanvasContext.clearRect(0, 0, workspace.CW, workspace.CH);
+            workspace.setCanvasSize(width, height);
+            workspace.getCanvasContext.drawImage(workspace.getLoadedImage, 0, 0, width, height);
+        };
+
+        onImageLoad(workspace.getLoadedImage, resizeImg);
+    }
+
+    events() {
+        document.getElementById("resize-button").addEventListener("click", e => {
+            this.widthInput.value = workspace.CW;
+            this.heightInput.value = workspace.CH;
+
+            this.resizeWindow.style.left = e.clientX + "px";
+            this.resizeWindow.style.top = e.clientY + "px";
+            this.resizeWindow.style.display = "flex";
+        });
+
+        this.resizeWindow.addEventListener("mouseleave", () => {
+            this.resizeWindow.style.display = "none";
+        });
+
+        this.widthInput.addEventListener("input", e => {
+            let value = e.target.value == "" ? 0 : parseInt(e.target.value);
+
+            if(value <= 0) {
+                if(value < 0) e.target.value = "";
+                else this.heightInput.value = 0;
+                return;
+            }
+
+            this.heightInput.value = this.calculateHeight(value);
+        });
+
+        this.heightInput.addEventListener("input", e => {
+            let value = e.target.value == "" ? 0 : parseInt(e.target.value);
+
+            if(value <= 0) {
+                if(value < 0) e.target.value = "";
+                else this.widthInput.value = 0;
+                return;
+            }
+
+            this.widthInput.value = this.calculateWidth(value);
+        });
+
+        document.getElementById("apply-resize").addEventListener("click", () => {
+            if(this.widthInput.value == "" || this.heightInput.value == "") {
+                infoTextbox.warn(infoTextbox.warnings.resizeInvalidInputs);
+                return;
+            }
+
+            const width = parseInt(this.widthInput.value);
+            const height = parseInt(this.heightInput.value);
+
+            if(width == 0 || height == 0) {
+                infoTextbox.warn(infoTextbox.warnings.redundantResize);
+                return;
+            }
+
+            if(width > maxImagePxSize || height > maxImagePxSize) {
+                infoTextbox.warn(infoTextbox.warnings.resizeTooBig);
+                return;
+            }
+
+            this.resize(width, height);
+        });
     }
 }

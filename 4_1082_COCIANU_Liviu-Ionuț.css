@@ -223,20 +223,45 @@ button {
     border: 1px solid var(--gray4);
 }
 
+/* == Dropdown pentru efecte ===================== */
+.apply-button {
+    background-color: var(--orange);
+    color: var(--gray1);
+    border: none;
+    border-radius: 4px;
+    font-family: "Ubuntu Mono";
+    border: 1px solid var(--gray1);
+    font-weight: bold;
+}
 
-#effects-dropdown {
+.form-window {
     width: 8em;
     background-color: var(--gray4);
     z-index: 4;
-    padding: 1px;
     position: absolute;
-    display: none;
     flex-direction: column;
-    align-items: center;
-    gap: 0.1em;
-
+    gap: 0.3em;
     border: 2px solid var(--gray1);
     border-radius: 5px;
+}
+
+.text-input {
+    font-family: "Ubuntu Mono";
+    border-radius: 3px;
+    border: 1px solid var(--gray1);
+    padding: 0.3em;
+    background-color: var(--gray5);
+    color: var(--mild-black);
+}
+
+::placeholder {
+    color: var(--gray3);
+}
+
+.effect-setting {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    margin-bottom: 0.5em;
 }
 
 .fx-button {
@@ -258,20 +283,15 @@ button {
     transition: color 0.5s;
 }
 
-#effect-none {
-    color: var(--orange);
-    font-weight: bold;
+#effects-dropdown {
+    padding: 1px;
+    display: none;
+    align-items: center;
+    gap: 0.1em;
 }
 
-.apply-button {
-    width: 2em;
-    background-color: var(--orange);
-    color: var(--gray1);
-    border: none;
-    border-radius: 4px;
-    font-family: "Ubuntu Mono";
-    margin: auto;
-    border: 1px solid var(--gray1);
+#effect-none {
+    color: var(--orange);
     font-weight: bold;
 }
 
@@ -293,10 +313,20 @@ button {
     cursor: pointer;
 }
 
-.effect-setting {
-    display: grid;
-    grid-template-columns: 3fr 1fr;
-    margin-bottom: 0.5em;
+#apply-brightness {
+    width: 2em;
+    margin: auto;
+}
+
+/* == Formular pentru redimensionare ======= */
+#resize-window {
+    display: none;
+    padding: 0.5em;
+}
+
+#apply-resize {
+    margin-top: 0.5em;
+    padding: 0.2em;
 }
 
 /* == Workspace area ============== */
@@ -335,6 +365,12 @@ button {
     justify-content: center;
 }
 
+#workspace-canvas {
+    box-shadow: 1px 1px 5px 1px var(--gray3);
+    transition: transform 0.5s;
+}
+
+/* == Selecție =================== */
 #selection {
     position: absolute;
     transform-origin: 0 0;
@@ -381,13 +417,7 @@ button {
     border: 1px solid gray;
 }
 
-#workspace-canvas {
-    box-shadow: 1px 1px 5px 1px var(--gray3);
-    transition: transform 0.5s;
-}
-
-
-/* Formular de încărcare pentru imagini */
+/* == Formular de încărcare pentru imagini ======== */
 #load-window {
     visibility: hidden;
     position: absolute;

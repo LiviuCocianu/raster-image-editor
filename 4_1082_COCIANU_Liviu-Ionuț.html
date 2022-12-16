@@ -41,7 +41,7 @@
             <img class="tool" id="graph-button" src="media/histogram-icon.png" alt="COLOR_HISTOGRAM" onclick="toolbar.selectTool(toolbar.ToolEnum.COLOR_HISTOGRAM)">
             <img class="tool" id="cut-button" src="media/cut-icon.png" alt="CUT" onclick="toolbar.selectTool(toolbar.ToolEnum.CUT)">
 
-            <div id="effects-dropdown">
+            <div class="form-window" id="effects-dropdown">
                 <button class="fx-button" id="effect-none">None</button>
 
                 <button class="fx-button" id="effect-brightness">Brightness</button>
@@ -58,6 +58,12 @@
                 <button class="fx-button" id="effect-shadow">Shadow</button>
                 <button class="fx-button" id="effect-sharpen">Sharpen</button>
                 <button class="fx-button" id="effect-sharpenless">Sharpenless</button>
+            </div>
+
+            <div class="form-window" id="resize-window">
+                <input class="text-input" id="resize-width" type="number" placeholder="Lungime" min="0">
+                <input class="text-input" id="resize-height" type="number" placeholder="Lățime" min="0">
+                <button class="apply-button" id="apply-resize">Aplică</button>
             </div>
         </div>
 
