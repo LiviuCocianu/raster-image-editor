@@ -65,6 +65,30 @@
                 <input class="text-input" id="resize-height" type="number" placeholder="Lățime" min="0">
                 <button class="apply-button" id="apply-resize">Aplică</button>
             </div>
+
+            <div class="form-window" id="text-window">
+                <textarea class="text-input" id="drawtext-text" type="text" placeholder="Text"></textarea>
+                <div class="text-input" id="drawtext-font">
+                    <span id="drawtext-font-display">Font</span>
+                    <div id="drawtext-font-dropdown">
+                        <div class="dt-font-option" id="dt-option-arial">Arial</div>
+                        <div class="dt-font-option" id="dt-option-verdana">Verdana</div>
+                        <div class="dt-font-option" id="dt-option-tahoma">Tahoma</div>
+                        <div class="dt-font-option" id="dt-option-trebuchet">Trebuchet MS</div>
+                        <div class="dt-font-option" id="dt-option-tnr">Times New Roman</div>
+                        <div class="dt-font-option" id="dt-option-georgia">Georgia</div>
+                        <div class="dt-font-option" id="dt-option-garamond">Garamond</div>
+                        <div class="dt-font-option" id="dt-option-courier">Courier New</div>
+                        <div class="dt-font-option" id="dt-option-brushscript">Brush Script MT</div>
+                        <div class="dt-font-option" id="dt-option-comicsans">Comic Sans MS</div>
+                        <div class="dt-font-option" id="dt-option-consolas">Consolas</div>
+                        <div class="dt-font-option" id="dt-option-impact">Impact</div>
+                    </div>
+                </div>
+                <input class="text-input" id="drawtext-size" type="number" placeholder="Dimensiune" min="0" max="200">
+                <input id="drawtext-color" type="color">
+                <button class="apply-button" id="drawtext-button">Adaugă</button>
+            </div>
         </div>
 
         <div id="workspace-area">

@@ -6,6 +6,9 @@ var selection;
 var crop;
 var effects;
 var resize;
+var text;
+var dragSelection;
+var cut;
 
 // Toolbar
 var loadOption, saveOption;
@@ -31,12 +34,15 @@ window.onload = () => {
     crop = new Cropping();
     effects = new Effects();
     resize = new Resize();
+    text = new DrawText();
+    dragSelection = new DragSelection();
+    cut = new Cut();
 
     // Fereastra de load
     darkness = document.getElementById("darkness");
     loadWindow = new LoadWindow();
     
-    ajustareDimensiuneAplicatie();
+    adjustScreen();
     initializareEvenimente();
 };
 
@@ -64,7 +70,7 @@ function initializareEvenimente() {
     toolpicker-ul și toolbar-ul, pentru a se potrivi
     mărimii inițiale a ferestrei.
 */
-function ajustareDimensiuneAplicatie() {
+function adjustScreen() {
     const barsDiv = document.getElementById("bars");
     const toolpickerDiv = document.getElementById("toolpicker");
     const canvCont = workspace.getContainingCanvasElement;
@@ -88,6 +94,24 @@ function onImageLoad(element, func) {
     }, 5000);
 }
 
+function forColorsInSelection(rgbaFunc) {
+    const imgData = selection.getImageData;
+    const data = imgData.data;
+    const newImgData = workspace.getCanvasContext.createImageData(selection.getWidth, selection.getHeight);
+    const newData = newImgData.data;
+
+    const pixelPosList = selection.getPixelPositions();
+
+    for (let i = 0; i < pixelPosList.length; i++) {
+        const pixelPos = pixelPosList[i];
+        const imgPixelPos = selection.getImagePixelAt(pixelPos.x, pixelPos.y);
+
+        rgbaFunc(newData, imgPixelPos, data[imgPixelPos], data[imgPixelPos + 1], data[imgPixelPos + 2], data[imgPixelPos + 3]);
+    }
+
+    workspace.getCanvasContext.putImageData(newImgData, selection.getX, selection.getY);
+}
+
 class InfoTextbox {
     constructor() {
         this.infoTextbox = document.getElementById("info-tooltip-textbox");
@@ -107,7 +131,9 @@ class InfoTextbox {
             selectionEqualWorkspace: "Decupare redundantă!",
             resizeInvalidInputs: "Cămpuri invalide pentru redimensionare!",
             redundantResize: "Redimensionare redundantă!",
-            resizeTooBig: `Noua dimensiune depășește limita de ${maxImagePxSize}px!`
+            resizeTooBig: `Noua dimensiune depășește limita de ${maxImagePxSize}px!`,
+            textNoSelection: "Selectează o regiune pentru plasarea textului!",
+            cutNoSelection: "Selectează regiunea pe care vrei să o ștergi!"
         }
 
         this.infoDefault();
@@ -587,6 +613,7 @@ class Selection {
         canvCont.addEventListener("mousedown", e => {
             if (e.target.classList.contains("sel-node")) return;
             if (!workspace.loadedImageExists) return;
+            if (dragSelection.holdsShift) return;
 
             toolbar.deselectTool(toolbar.ToolEnum.SELECTION);
 
@@ -753,7 +780,7 @@ class Effects {
 
         switch(effect) {
             case "brightness":
-                this._forColorsInSelection((data, pos, r, g, b, a) => {
+                forColorsInSelection((data, pos, r, g, b, a) => {
                     data[pos] = r + 255 * (brightness / 100);
                     data[pos + 1] = g + 255 * (brightness / 100);
                     data[pos + 2] = b + 255 * (brightness / 100);
@@ -761,13 +788,13 @@ class Effects {
                 });
                 break;
             case "grayscale":
-                this._forColorsInSelection((data, pos, r, g, b, a) => {
+                forColorsInSelection((data, pos, r, g, b, a) => {
                     data[pos] = data[pos + 1] = data[pos + 2] = 0.2126*r + 0.7152*g + 0.0722*b;
                     data[pos + 3] = a;
                 });
                 break;
             case "inverted":
-                this._forColorsInSelection((data, pos, r, g, b, a) => {
+                forColorsInSelection((data, pos, r, g, b, a) => {
                     data[pos] = 255 - r;
                     data[pos + 1] = 255 - g;
                     data[pos + 2] = 255 - b;
@@ -775,7 +802,7 @@ class Effects {
                 });
                 break;
             case "sepia":
-                this._forColorsInSelection((data, pos, r, g, b, a) => {
+                forColorsInSelection((data, pos, r, g, b, a) => {
                     data[pos] = 0.393*r + 0.769*g + 0.189*b;
                     data[pos + 1] = 0.349*r + 0.686*g + 0.168*b;
                     data[pos + 2] = 0.272*r + 0.534*g + 0.131*b;
@@ -796,24 +823,6 @@ class Effects {
                 }
                 break;
         }
-    }
-
-    _forColorsInSelection(rgbaFunc) {
-        const imgData = selection.getImageData;
-        const data = imgData.data;
-        const newImgData = workspace.getCanvasContext.createImageData(selection.getWidth, selection.getHeight);
-        const newData = newImgData.data;
-
-        const pixelPosList = selection.getPixelPositions();
-
-        for(let i = 0; i < pixelPosList.length; i++) {
-            const pixelPos = pixelPosList[i];
-            const imgPixelPos = selection.getImagePixelAt(pixelPos.x, pixelPos.y);
-
-            rgbaFunc(newData, imgPixelPos, data[imgPixelPos], data[imgPixelPos + 1], data[imgPixelPos + 2], data[imgPixelPos + 3]);
-        }
-
-        workspace.getCanvasContext.putImageData(newImgData, selection.getX, selection.getY);
     }
 
     events() {
@@ -951,6 +960,260 @@ class Resize {
             }
 
             this.resize(width, height);
+        });
+    }
+}
+
+class DrawText {
+    constructor() {
+        this.textWindow = document.getElementById("text-window");
+        this.textInput = document.getElementById("drawtext-text");
+        this.sizeInput = document.getElementById("drawtext-size");
+        this.colorInput = document.getElementById("drawtext-color");
+        this.fontDropdown = document.getElementById("drawtext-font-dropdown");
+
+        this.font = "Arial";
+
+        this.events();
+    }
+
+    getCharacterWidth() {
+        return Math.round(workspace.getCanvasContext.measureText("a").width * 0.9);
+    }
+
+    getTextHeight(text) {
+        let metrics = workspace.getCanvasContext.measureText(text);
+        return metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    }
+
+    toDefault() {
+        this.textInput.value = "";
+        this.textInput.style.height = "15px";
+        this.sizeInput.value = "12";
+        this.font = "Arial";
+        this.colorInput.value = "#000000";
+
+        const display = document.getElementById("drawtext-font-display");
+        display.innerHTML = "Font";
+        display.style.fontFamily = "Ubuntu Mono";
+
+        Array.from(document.getElementsByClassName("dt-font-option")).forEach(el => {
+            el.classList.remove("dt-font-option-sel");
+        });
+    }
+
+    closeWindow() {
+        this.textWindow.style.display = "none";
+    }
+
+    events() {
+        document.getElementById("text-button").addEventListener("click", e => {
+            if(!selection.isMade) {
+                infoTextbox.warn(infoTextbox.warnings.textNoSelection);
+                return;
+            }
+
+            this.sizeInput.value = this.sizeInput.value == "" ? "12" : this.sizeInput.value;
+
+            this.textWindow.style.left = e.clientX + "px";
+            this.textWindow.style.top = e.clientY + "px";
+            this.textWindow.style.display = "grid";
+        });
+
+        this.textWindow.addEventListener("mouseleave", () => {
+            this.closeWindow();
+        });
+
+        this.sizeInput.addEventListener("input", e => {
+            let value = parseInt(e.target.value);
+
+            if(value == "NaN") {
+                e.target.value = "";
+                return;
+            }
+
+            if(value > e.target.max) {
+                e.target.value = e.target.max;
+                return;
+            }
+
+            if (value <= 0) {
+                if (value < 0) e.target.value = "";
+                else this.sizeInput.value = 0;
+            }
+        });
+
+        document.getElementById("drawtext-font").addEventListener("click", () => {
+            this.fontDropdown.style.display = "flex";
+        });
+
+        Array.from(document.getElementsByClassName("dt-font-option")).forEach(el => {
+            el.style.fontFamily = el.innerHTML;
+
+            el.addEventListener("click", () => {
+                Array.from(document.getElementsByClassName("dt-font-option")).forEach(el => {
+                    el.classList.remove("dt-font-option-sel");
+                });
+                
+                this.font = el.innerHTML;
+                el.classList.add("dt-font-option-sel");
+
+                const display = document.getElementById("drawtext-font-display");
+                display.innerHTML = el.innerHTML;
+                display.style.fontFamily = el.innerHTML;
+            });
+        });
+
+        this.fontDropdown.addEventListener("mouseleave", () => {
+            this.fontDropdown.style.display = "none";
+        });
+
+        document.getElementById("drawtext-button").addEventListener("click", () => {
+            if (!selection.isMade) {
+                infoTextbox.warn(infoTextbox.warnings.textNoSelection);
+                return;
+            }
+            
+            workspace.getCanvasContext.fillStyle = this.colorInput.value;
+            workspace.getCanvasContext.font = `${this.sizeInput.value}px ${this.font}`;
+
+            const offset = 2;
+            const lineH = this.getTextHeight(this.textInput.value) + 4;
+            const lineCount = (this.textInput.value.match(/\n\r?/g) || []).length + 1;
+            const lines = lineCount > 1 ? this.textInput.value.split(/\n\r?/g) : [this.textInput.value];
+            const startY = selection.getY + lineH + offset;
+            const maxCharPerLine = Math.floor(selection.getWidth / this.getCharacterWidth());
+
+            let lineIncr = 0;
+            for(let i = 0; i < lineCount; i++) {
+                if (lines[i].length > maxCharPerLine) {
+                    lines[i] = lines[i].replace(new RegExp(`.{${maxCharPerLine}}`, 'g'), '$&{{}}');
+                    const lineLines = lines[i].split("{{}}");
+
+                    for(let j = 0; j < lineLines.length; j++) {
+                        workspace.getCanvasContext.fillText(lineLines[j], selection.getX + offset, startY + (lineH + offset) * (i + lineIncr));
+                        lineIncr++;
+                    }
+                } else {
+                    workspace.getCanvasContext.fillText(lines[i], selection.getX + offset, startY + (lineH + offset) * (i + lineIncr));
+                }
+            }
+
+            this.toDefault();
+            this.closeWindow();
+            selection.hideSelection();
+        });
+    }
+}
+
+class DragSelection {
+    constructor() {
+        this.holdsShift = false;
+        this.holdsLeftClick = false;
+
+        this.canvasSel = {
+            x: 0,
+            y: 0,
+            w: 0,
+            h: 0
+        };
+
+        this.initialCanv = undefined;
+        this.draggedImgData = undefined;
+
+        this.events();
+    }
+
+    events() {
+        selection.sel.addEventListener("mousemove", e => {
+            if (!selection.isMade) return;
+
+            if (!this.holdsShift || !this.holdsLeftClick) return;
+
+            if (this.initialCanv == undefined) {
+                this.canvasSel = {
+                    x: selection.getX,
+                    y: selection.getY,
+                    w: selection.getWidth,
+                    h: selection.getHeight
+                };
+
+                this.draggedImgData = selection.getImageData;
+
+                forColorsInSelection((data, pos, r, g, b, a) => {
+                    data[pos] = 255;
+                    data[pos + 1] = 255;
+                    data[pos + 2] = 255;
+                    data[pos + 3] = 255;
+                });
+
+                this.initialCanv = workspace.getCanvasContext.getImageData(0, 0, workspace.CW, workspace.CH);
+
+                selection.hideSelection();
+
+                workspace.getCanvasElement.style.cursor = "grab";
+            }
+        })
+
+        workspace.getCanvasElement.addEventListener("mousemove", e => {
+            const {x, y} = this.canvasSel;
+
+            if(this.holdsShift && this.holdsLeftClick) {
+                this.canvasSel.x = (x + e.movementX);
+                this.canvasSel.y = (y + e.movementY);
+
+                workspace.getCanvasContext.putImageData(this.initialCanv, 0, 0);
+                workspace.getCanvasContext.putImageData(this.draggedImgData, x, y);
+            } else if (this.initialCanv != undefined) {
+                this.initialCanv = undefined;
+                workspace.getCanvasElement.style.cursor = "default";
+                this.holdsShift = false;
+                this.holdsLeftClick = false;
+            }
+        });
+
+        document.addEventListener("keydown", e => {
+            this.holdsShift = e.key == "Shift";
+        });
+
+        document.addEventListener("keyup", () => {
+            this.holdsShift = false;
+        });
+
+        selection.sel.addEventListener("mousedown", e => {
+            this.holdsLeftClick = e.button == 0;
+        });
+
+        selection.sel.addEventListener("mouseup", () => {
+            this.holdsLeftClick = false;
+        });
+    }
+}
+
+class Cut {
+    constructor() {
+        this.events();
+    }
+
+    cutSelection() {
+        forColorsInSelection((data, pos, r, g, b, a) => {
+            data[pos] = 255;
+            data[pos + 1] = 255;
+            data[pos + 2] = 255;
+            data[pos + 3] = 255;
+        });
+
+        selection.hideSelection();
+    }
+
+    events() {
+        document.getElementById("cut-button").addEventListener("click", () => {
+            if (!selection.isMade) {
+                infoTextbox.warn(infoTextbox.warnings.cutNoSelection);
+                return;
+            }
+
+            this.cutSelection();
         });
     }
 }

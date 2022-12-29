@@ -329,6 +329,107 @@ button {
     padding: 0.2em;
 }
 
+/* == Formular pentru adăugare text ======== */
+#text-window {
+    display: none;
+    padding: 0.6em;
+    max-height: 200px;
+    grid-template-columns: auto 1.5em;
+    grid-template-rows: auto auto auto 1em;
+    justify-content: center;
+    column-gap: 0.4em;
+}
+
+#drawtext-text {
+    width: auto;
+    height: 1.2em;
+    min-height: 15px;
+    max-height: 110px;
+    resize: vertical;
+    grid-column: 1/3;
+}
+
+#drawtext-font {
+    width: auto;
+    height: 1em;
+    grid-column: 1/3;
+    color: var(--gray3);
+    font-size: 0.8em;
+    cursor: pointer;
+}
+
+#drawtext-font::-webkit-scrollbar {
+    display: none;
+}
+
+#drawtext-font-dropdown {
+    background-color: var(--gray5);
+    width: 9em;
+    position: relative;
+    top: -18px;
+    display: none;
+    flex-direction: column;
+    border: 1px solid var(--gray1);
+}
+
+.dt-font-option {
+    height: 1em;
+    padding: 0.3em;
+    border-bottom: 1px solid var(--gray1);
+    color: var(--gray1);
+}
+
+.dt-font-option-sel {
+    font-weight: bold;
+}
+
+.dt-font-option:hover {
+    background-color: var(--gray4);
+}
+
+#drawtext-text::-webkit-scrollbar {
+    width: 6px;
+    height: 10px;
+}
+
+#drawtext-text::-webkit-scrollbar-track {
+    background-color: var(--gray5);
+}
+
+#drawtext-text::-webkit-scrollbar-thumb {
+    background-color: var(--gray2);
+}
+
+#drawtext-text::-webkit-scrollbar-thumb:hover {
+    background-color: var(--gray3);
+}
+
+#drawtext-text::-webkit-resizer {
+    width: 5px;
+    height: 5px;
+    background-color: var(--gray3);
+    border-top-left-radius: 100%;
+}
+
+#drawtext-size {
+    height: 1.2em;
+}
+
+#drawtext-color {
+    width: 1.5em;
+    height: 1.5em;
+    justify-self: center;
+}
+
+#drawtext-color::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+#drawtext-button {
+    align-self: center;
+    grid-column: 1/3;
+}
+
 /* == Workspace area ============== */
 /* (canvas area) */
 #workspace-area {
