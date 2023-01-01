@@ -122,16 +122,24 @@
                 <div id="lw-info">
                     <span id="lw-info-text">
                         Încarcă o imagine<br/>
-                        Tipuri acceptate: PNG, JPEG
+                        Tipuri acceptate: PNG, JPEG, GIF
                     </span>
                 </div>
                 <div id="lw-load-component">
-                    <input type="file" name="load-image" id="lw-load-input" accept="image/png, image/jpeg">
+                    <input type="file" name="load-image" id="lw-load-input" accept="image/png, image/jpeg, image/gif">
                 </div>
                 <div id="lw-submit-area">
                     <button id="lw-submit-button" disabled>Încarcă</button>
                 </div>
             </div>
+        </div>
+
+        <!-- Fereastra pentru histograma -->
+        <div id="histogram-window">
+            <div id="hw-bar"></div>
+            <canvas id="hw-canvas-red"></canvas>
+            <canvas id="hw-canvas-green"></canvas>
+            <canvas id="hw-canvas-blue"></canvas>
         </div>
     </div>
 </body>

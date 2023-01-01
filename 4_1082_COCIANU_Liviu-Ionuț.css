@@ -471,7 +471,7 @@ button {
     transition: transform 0.5s;
 }
 
-/* == Selecție =================== */
+/* == Selecție ==== */
 #selection {
     position: absolute;
     transform-origin: 0 0;
@@ -518,7 +518,7 @@ button {
     border: 1px solid gray;
 }
 
-/* == Formular de încărcare pentru imagini ======== */
+/* == Formular de încărcare pentru imagini ==== */
 #load-window {
     visibility: hidden;
     position: absolute;
@@ -600,6 +600,38 @@ button {
 #lw-submit-button:hover, #lw-load-input::file-selector-button:hover {
     color: var(--gray5);
     cursor: pointer;
+}
+
+/* == Fereastra pentru histograma ==== */
+#histogram-window {
+    /* 400x600 */
+    /* 532x285 */
+    position: absolute;
+    width: 552px;
+    height: 335px;
+    background-color: var(--gray4);
+    border-radius: 5px;
+    z-index: 3;
+
+    display: none;
+    grid-template-rows: 20px auto;
+}
+
+#hw-bar {
+    width: 100%;
+    background-color: var(--gray3);
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    cursor: grab;
+}
+
+#histogram-window > canvas {
+    width: 99%;
+    height: 95px;
+    background-color: var(--gray5);
+    border-radius: 5px;
+    justify-self: center;
+    align-self: center;
 }
 
 

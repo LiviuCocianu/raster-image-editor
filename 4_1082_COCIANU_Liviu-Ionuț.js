@@ -7,6 +7,7 @@ var crop;
 var effects;
 var resize;
 var text;
+var histogram;
 var dragSelection;
 var cut;
 
@@ -30,11 +31,13 @@ window.onload = () => {
     toolbar = new Toolbar();
     infoTextbox = new InfoTextbox();
     workspace = new Workspace();
+
     selection = Selection.create(0, 0, 1, 1);
     crop = new Cropping();
     effects = new Effects();
     resize = new Resize();
     text = new DrawText();
+    histogram = new Histogram();
     dragSelection = new DragSelection();
     cut = new Cut();
 
@@ -133,7 +136,8 @@ class InfoTextbox {
             redundantResize: "Redimensionare redundantă!",
             resizeTooBig: `Noua dimensiune depășește limita de ${maxImagePxSize}px!`,
             textNoSelection: "Selectează o regiune pentru plasarea textului!",
-            cutNoSelection: "Selectează regiunea pe care vrei să o ștergi!"
+            cutNoSelection: "Selectează regiunea pe care vrei să o ștergi!",
+            histNoSelection: "Selectează regiunea de analizat!"
         }
 
         this.infoDefault();
@@ -267,6 +271,7 @@ class Toolbar {
                 case this.toolEnum.SELECTION:
                     selection.makeSelectionAt(0, 0, workspace.CW, workspace.CH);
                     document.getElementById("select-button").classList.add("selected-tool");
+                    workspace.getCanvasElement.dispatchEvent(selection.selectedEvent);
                     break;
             }
         }
@@ -292,7 +297,7 @@ class Toolbar {
                     infoTextbox.warn(infoTextbox.warnings.toolNoImage);
                 }
 
-                if(toolFromID != "effects") effects.setOriginalImageURL(undefined);
+                if(toolFromID != "effects") effects.originalImageData = undefined;
             });
         });
     }
@@ -466,6 +471,10 @@ class Selection {
         this.setElemWidth(this.w);
         this.setElemHeight(this.h);
 
+        this.selectingEvent = new Event("selecting");
+        this.selectedEvent = new Event("selected");
+        this.deselectEvent = new Event("deselect");
+
         this.events();
     }
 
@@ -506,11 +515,15 @@ class Selection {
     }
 
     get getImageData() {
-        return workspace.getCanvasContext.getImageData(this.x, this.y, this.w, this.h);
+        return workspace.getCanvasContext.getImageData(this.x, this.y, Math.max(this.w, 8), Math.max(this.h, 8));
     }
 
     get isMade() {
         return this.sel.style.display != "none";
+    }
+
+    get getDataURL() {
+        return this.canvas.toDataURL(Image.prototype.format, 1.0);
     }
 
     setElemX(x) {
@@ -548,22 +561,9 @@ class Selection {
     getPixelPositions() {
         let pixels = [];
 
-        for(let j = this.y; j <= this.y + this.h; j++) {
-            for(let i = this.x; i <= this.x + this.w; i++) {
+        for(let j = this.y; j <= this.y + this.h - 1; j++) {
+            for(let i = this.x; i <= this.x + this.w - 1; i++) {
                 pixels.push({x: i, y: j});
-            }
-        }
-
-        return pixels;
-    }
-
-    getImageDataPixelPositions() {
-        let pixels = [];
-
-        for(let j = this.y; j <= this.y + this.h; j++) {
-            for(let i = this.x; i <= this.x + this.w; i++) {
-                const pos = j * (workspace.CW * 4) + i * 4;
-                pixels.push(pos);
             }
         }
 
@@ -587,18 +587,23 @@ class Selection {
 
     finishSelecting() {
         this.selMouseDown.selecting = false;
+        workspace.getCanvasElement.dispatchEvent(this.selectedEvent);
     }
 
     hideSelection() {
         this.sel.style.display = "none";
         toolbar.deselectTool(toolbar.ToolEnum.SELECTION);
+        workspace.getCanvasElement.dispatchEvent(this.deselectEvent);
     }
 
     events() {
         const canvCont = workspace.getContainingCanvasElement;
+        const finishFunc = () => {
+            if (this.selMouseDown.selecting && this.isMade) this.finishSelecting();
+        };
 
-        canvCont.addEventListener("mouseup", () => this.finishSelecting());
-        canvCont.addEventListener("mouseleave", () => this.finishSelecting());
+        canvCont.addEventListener("mouseup", finishFunc);
+        canvCont.addEventListener("mouseleave", finishFunc);
 
         workspace.getWorkspaceElement.addEventListener("dblclick", () => {
             if (this.sel.style.display != "none") {
@@ -616,6 +621,7 @@ class Selection {
             if (dragSelection.holdsShift) return;
 
             toolbar.deselectTool(toolbar.ToolEnum.SELECTION);
+            this.hideSelection();
 
             const rect = canvCont.getBoundingClientRect();
             const x = Math.round(Math.max(0, e.clientX - rect.left));
@@ -637,8 +643,10 @@ class Selection {
                 return;
             }
 
-            if(this.selMouseDown.selecting)
+            if(this.selMouseDown.selecting) {
                 this.makeSelectionAt(x, y, w, h, 4);
+                workspace.getCanvasElement.dispatchEvent(this.selectingEvent);
+            }
         });
     }
 }
@@ -678,7 +686,7 @@ class Effects {
         this.brightnessSettings = document.getElementById("brightness-settings");
         this.brightnessSliderVisible = false;
 
-        this.originalImageURL = undefined;
+        this.originalImageData = undefined;
 
         this.kernels =  {
             emboss: [-2, -1, 0, -1, 1, 1, 0, 1, 2],
@@ -689,14 +697,6 @@ class Effects {
         };
 
         this.events();
-    }
-
-    get getOriginalImageURL() {
-        return this.originalImageURL;
-    }
-
-    setOriginalImageURL(url) {
-        this.originalImageURL = url;
     }
 
     _normalize(kernel) {
@@ -716,8 +716,8 @@ class Effects {
             return;
         }
 
-        if(this.originalImageURL == undefined) {
-            this.setOriginalImageURL(workspace.getDataURL);
+        if (this.originalImageData == undefined) {
+            this.originalImageData = selection.getImageData;
         }
 
         kernel = this._normalize(kernel);
@@ -774,8 +774,8 @@ class Effects {
             return;
         }
 
-        if(this.originalImageURL == undefined) {
-            this.setOriginalImageURL(workspace.getDataURL);
+        if (this.originalImageData == undefined) {
+            this.originalImageData = selection.getImageData;
         }
 
         switch(effect) {
@@ -810,16 +810,9 @@ class Effects {
                 });
                 break;
             case "none":
-                if(this.originalImageURL != undefined) {
-                    workspace.getLoadedImage.src = this.originalImageURL;
-                    this.setOriginalImageURL(undefined);
-
-                    const redrawImage = () => {
-                        workspace.getCanvasContext.clearRect(...selection.getDimensions);
-                        workspace.getCanvasContext.drawImage(workspace.getLoadedImage, ...selection.getDimensions);
-                    };
-
-                    onImageLoad(workspace.getLoadedImage, redrawImage);
+                if (this.originalImageData != undefined) {
+                    workspace.getCanvasContext.putImageData(this.originalImageData, selection.getX, selection.getY);
+                    this.originalImageData = undefined;
                 }
                 break;
         }
@@ -841,6 +834,12 @@ class Effects {
         document.getElementById("apply-brightness").addEventListener("click", () => {
             const value = parseInt(document.getElementById("brightness-slider").value);
             this._kernelessEffect("brightness", value);
+        });
+
+        workspace.getCanvasElement.addEventListener("selected", () => {
+            if (this.originalImageData != undefined) {
+                this.originalImageData = undefined;
+            }
         });
 
         Array.from(document.getElementsByClassName("fx-button")).forEach(btn => {
@@ -1102,6 +1101,188 @@ class DrawText {
             this.toDefault();
             this.closeWindow();
             selection.hideSelection();
+        });
+    }
+}
+
+class Histogram {
+    constructor() {
+        this.histogramWindow = document.getElementById("histogram-window");
+        this.hwBar = document.getElementById("hw-bar");
+
+        this.histogramCanvR = document.getElementById("hw-canvas-red");
+        this.histogramCanvG = document.getElementById("hw-canvas-green");
+        this.histogramCanvB = document.getElementById("hw-canvas-blue");
+
+        this.contextR = this.histogramCanvR.getContext("2d", { willReadFrequently: true });
+        this.contextG = this.histogramCanvG.getContext("2d", { willReadFrequently: true });
+        this.contextB = this.histogramCanvB.getContext("2d", { willReadFrequently: true });
+
+        this.windowVisible = false;
+        this.cursorOverBar = false;
+        this.holdsLeftClick = false;
+
+        this.events();
+    }
+
+    fitWindow() {
+        const histRect = this.histogramWindow.getBoundingClientRect();
+        const containerRect = document.getElementById("container").getBoundingClientRect();
+        const toolbarRect = document.getElementById("toolpicker").getBoundingClientRect();
+
+        const contWidth = containerRect.width + toolbarRect.width + 10;
+        const contHeight = containerRect.height + 39;
+
+        if (histRect.left + histRect.width > contWidth) {
+            this.histogramWindow.style.left = contWidth - histRect.width + "px";
+        }
+
+        if (histRect.left < containerRect.left) 
+            this.histogramWindow.style.left = containerRect.left + "px";
+
+        if (histRect.top + histRect.height > contHeight) {
+            this.histogramWindow.style.top = contHeight - histRect.height + "px";
+        }
+
+        if (histRect.top < containerRect.top) 
+            this.histogramWindow.style.top = containerRect.top + "px";
+    }
+
+    getChannelFreqsInSelection() {
+        const imgData = selection.getImageData;
+        const data = imgData.data;
+        const out = {
+            red: {},
+            green: {},
+            blue: {}
+        };
+
+        for(let i = 0; i < 256; i++) {
+            out.red[i] = 0;
+            out.green[i] = 0;
+            out.blue[i] = 0;
+        }
+
+        const pixelPosList = selection.getPixelPositions();
+
+        for (let i = 0; i < pixelPosList.length; i++) {
+            const pixelPos = pixelPosList[i];
+            const imgPixelPos = selection.getImagePixelAt(pixelPos.x, pixelPos.y);
+
+            out.red[data[imgPixelPos]] += 1;
+            out.green[data[imgPixelPos + 1]] += 1;
+            out.blue[data[imgPixelPos + 2]] += 1;
+        }
+
+        return out;
+    }
+
+    drawBars() {
+        const {red, green, blue} = this.getChannelFreqsInSelection();
+        const [canvW, canvH] = [this.histogramCanvR.width, this.histogramCanvR.height];
+        const padding = 10;
+        const barWidth = Math.round((canvW - padding) / 256);
+        const maxHeight = Math.floor(canvH - (padding * 2));
+
+        const contexts = [this.contextR, this.contextG, this.contextB];
+        const freqs = [red, green, blue];
+        const colors = ["red", "green", "blue"];
+
+        for(let i = 0; i < contexts.length; i++) {
+            let context = contexts[i];
+            context.clearRect(0, 0, canvW, canvH);
+
+            context.strokeStyle = "#767981";
+            context.beginPath();
+            context.moveTo(padding, padding);
+            context.lineTo(padding, canvH - padding);
+            context.lineTo(canvW - padding, canvH - padding);
+            context.stroke();
+
+            const maxFreqCol = Math.max(...Object.values(freqs[i]));
+            let barIndexCol = padding + 1;
+
+            for (const value of Object.values(freqs[i])) {
+                let barHeight = -Math.floor((value * maxHeight) / maxFreqCol);
+                barHeight = barHeight == -0 ? 0 : barHeight;
+
+                context.fillStyle = colors[i];
+                context.fillRect(barIndexCol, canvH - (padding + 1), barWidth, barHeight);
+                barIndexCol += barWidth;
+            }
+        }
+    }
+
+    updateHistogram() {
+        if(this.histogramWindow.style.display == "grid") this.drawBars();
+    }
+
+    events() {
+        document.getElementById("graph-button").addEventListener("click", () => {
+            if (!selection.isMade) {
+                infoTextbox.warn(infoTextbox.warnings.histNoSelection);
+                return;
+            }
+
+            this.histogramWindow.style.display = !this.windowVisible ? "grid" : "none";
+
+            if(!this.windowVisible) {
+                const histRect = this.histogramWindow.getBoundingClientRect();
+                const containerRect = document.getElementById("container").getBoundingClientRect();
+                const toolbarRect = document.getElementById("toolpicker").getBoundingClientRect();
+
+                const contWidth = containerRect.width + toolbarRect.width + 10;
+                const contHeight = containerRect.height + 39;
+
+                this.histogramWindow.style.left = contWidth - histRect.width + "px";
+                this.histogramWindow.style.top = contHeight - histRect.height + "px";
+
+                if (this.histogramCanvR.width == 300 && this.histogramCanvR.height == 150) {
+                    this.histogramCanvR.width = this.histogramCanvR.getBoundingClientRect().width;
+                    this.histogramCanvR.height = this.histogramCanvR.getBoundingClientRect().height;
+
+                    this.histogramCanvG.width = this.histogramCanvG.getBoundingClientRect().width;
+                    this.histogramCanvG.height = this.histogramCanvG.getBoundingClientRect().height;
+
+                    this.histogramCanvB.width = this.histogramCanvB.getBoundingClientRect().width;
+                    this.histogramCanvB.height = this.histogramCanvB.getBoundingClientRect().height;
+                }
+
+                this.drawBars();
+            }
+
+            this.windowVisible = !this.windowVisible;
+        });
+
+        document.getElementById("container").addEventListener("mousemove", e => {
+            if(this.holdsLeftClick) {
+                const rect = this.histogramWindow.getBoundingClientRect();
+
+                this.histogramWindow.style.left = rect.left + e.movementX + "px";
+                this.histogramWindow.style.top = rect.top + e.movementY + "px";
+
+                this.fitWindow();
+            }
+        });
+
+        workspace.getCanvasElement.addEventListener("selected", () => {
+            this.updateHistogram();
+        });
+
+        this.hwBar.addEventListener("mouseenter", () => {
+            this.cursorOverBar = true;
+        });
+
+        this.hwBar.addEventListener("mouseleave", () => {
+            this.cursorOverBar = false;
+        });
+
+        this.hwBar.addEventListener("mousedown", e => {
+            if(e.button === 0) this.holdsLeftClick = true;
+        });
+
+        document.addEventListener("mouseup", e => {
+            if(e.button === 0) this.holdsLeftClick = false;
         });
     }
 }
