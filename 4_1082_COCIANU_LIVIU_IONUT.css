@@ -31,8 +31,6 @@ html, body {
     font-family: 'Ubuntu Mono', monospace;
 }
 
-/* https://coolors.co/212430-2d3142-525562-767981-bfc0c0-dfe0e0-ffffff-ef8354 */
-
 body {
     display: flex;
     align-items: center;
@@ -74,11 +72,8 @@ button {
 #logo-img {
     position: relative;
     top: 5px;
-
     width: 90%;
     height: 90%;
-    /* Portocaliu */
-    /* Generat cu https://codepen.io/sosuke/pen/Pjoqqp */
     filter: invert(52%) sepia(91%) saturate(344%) hue-rotate(332deg) brightness(97%) contrast(93%);
 }
 
